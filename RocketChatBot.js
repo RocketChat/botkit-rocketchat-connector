@@ -1,5 +1,5 @@
-// Botkit imports
-var Botkit = require('botkit');
+// Botkit imports, need to make it relative path
+var Botkit = require('./node_modules/botkit/lib/CoreBot.js');
 // RocketChat SDK
 const { driver } = require('@rocket.chat/sdk');
 
@@ -116,8 +116,9 @@ function RocketChatBot(botkit, config) {
         next();  
     });
     
-    return runbot();
     //return controller;
+    return runbot();
 }
 
 module.exports = RocketChatBot;
+

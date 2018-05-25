@@ -1,0 +1,29 @@
+{
+  "name": "botkit-rocketchat-connector",
+  "version": "0.0.1",
+  "description": "A external connector to integrates botkit with RocketChat",
+  "main": "RocketChatBot.js",
+  "dependencies": {
+    "@rocket.chat/sdk": "^0.2.1",
+    "botkit": "^0.6.14"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/RocketChat/botkit-rocketchat-connector.git"
+  },
+  "keywords": [
+    "RocketChat",
+    "Botkit",
+    "connector"
+  ],
+  "author": "https://github.com/arthurtemporim/",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/RocketChat/botkit-rocketchat-connector/issues"
+  },
+  "homepage": "https://github.com/RocketChat/botkit-rocketchat-connector#readme"
+}
