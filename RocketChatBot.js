@@ -8,12 +8,12 @@ const SSL = false;
 
 function RocketChatBot(botkit, config) {
     console.log("Inside RocketChatBot");
-    
+
     var controller = Botkit(config || {});
 
     var myuserid;
 
-    controller.startBot = async () => {        
+    controller.startBot = async () => {
         // insert to var bot bot.defineBot()
         var bot = controller.spawn(config);
         try {
@@ -47,20 +47,21 @@ function RocketChatBot(botkit, config) {
             utterances: botkit.utterances,
         }
 
-        bot.startConversation = function(message, cb) {
+        bot.startConversation = function (message, cb) {
             botkit.startConversation(this, message, cb);
         };
 
-        bot.createConversation = function(message, cb) {
+        bot.createConversation = function (message, cb) {
             botkit.createConversation(this, message, cb);
         };
-        
-        bot.send = async function (message, cb) {                        
-            if(bot.connected) {
-                // TODO: need to configure the channel parameter
-                const sent = await driver.sendToRoom(message, ROOMS[0]);            
-                console.log('SEND: ', message);
-            }            
+
+        bot.send = async function (message, cb) {
+            console.log("\ninside bot.send")
+            if (bot.connected) {
+                // TODO: need to configure the channel parameter                
+                const sent = await driver.sendToRoom(message, ROOMS[0]);
+                console.log('SEND: ', message);                
+            }
         }
 
         // this function takes an incoming message (from a user) and an outgoing message (reply from bot)
@@ -75,6 +76,8 @@ function RocketChatBot(botkit, config) {
 
             resp.channel = src.channel;
             resp.to = src.user;
+
+            console.log("\n\nbefore bot.say")
 
             bot.say(resp, cb);
         };
@@ -99,8 +102,12 @@ function RocketChatBot(botkit, config) {
         return bot;
     })
 
-    controller.middleware.ingest.use(function(bot, message, reply_channel, next) {
-        console.log("\ninside middleware.ingest.use")
+    controller.middleware.format.use(function(bot, message, platform_message, next) {
+        for (var k in message) {
+            platform_message[k] = message[k]
+          }
+        next();
+        console.log("\n\ninside middleware.format.use\n")
     });
 
     return controller;
