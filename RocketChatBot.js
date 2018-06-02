@@ -34,7 +34,7 @@ function RocketChatBot(botkit, config) {
         // send the first message to channel
         bot.send(config.rocketchat_bot_user + " is listening...");
         // test a reply message in channel
-        bot.reply("reply message", 'ok');
+        bot.reply({}, 'ok');
     }
 
     // TODO: config it's not getting the correct values inside defineBot
@@ -66,23 +66,17 @@ function RocketChatBot(botkit, config) {
         // this function takes an incoming message (from a user) and an outgoing message (reply from bot)
         // and ensures that the reply has the appropriate fields to appear as a reply
         bot.reply = function (src, resp, cb) {
-            console.log('reply')
-            console.log("\n\n src: "+src);
-            console.log("\n\n resp: "+resp);
-            console.log("\n\n cb: "+cb);
-            var msg = {};
-
+            console.log('\ninside reply')
             if (typeof (resp) == 'string') {
-                msg.text = resp;
-            } else {
-                msg = resp;
+                resp = {
+                    text: resp
+                };
             }
 
-            msg.channel = src.channel;
-            msg.to = src.user;
+            resp.channel = src.channel;
+            resp.to = src.user;
 
-            console.log("\n bot.say: "+bot.say(msg, cb))
-            bot.say(msg, cb);
+            bot.say(resp, cb);
         };
 
         // this function defines the mechanism by which botkit looks for ongoing conversations
@@ -105,35 +99,9 @@ function RocketChatBot(botkit, config) {
         return bot;
     })
 
-
-    // provide one or more normalize middleware functions that take a raw incoming message
-    // and ensure that the key botkit fields are present -- user, channel, text, and type    
-    controller.middleware.normalize.use(function (bot, message, next) {
-        console.log('NORMALIZE', message);
-        next();
+    controller.middleware.ingest.use(function(bot, message, reply_channel, next) {
+        console.log("\ninside middleware.ingest.use")
     });
-
-    // provide one or more ways to format outgoing messages from botkit messages into 
-    // the necessary format required by the platform API
-    // at a minimum, copy all fields from `message` to `platform_message`
-    controller.middleware.format.use(function (bot, message, platform_message, next) {
-        for (var k in message) {
-            platform_message[k] = message[k]
-        }
-        next();
-    });
-
-
-    // provide a way to receive messages - normally by handling an incoming webhook as below!
-    controller.handleWebhookPayload = function (req, res) {
-        var payload = req.body;
-
-        var bot = controller.spawn({});
-        controller.ingest(bot, payload, res);
-
-        res.status(200);
-    };
-
 
     return controller;
 }
