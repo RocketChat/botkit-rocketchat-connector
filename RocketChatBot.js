@@ -34,7 +34,24 @@ function RocketChatBot(botkit, config) {
         // send the first message to channel
         bot.send(config.rocketchat_bot_user + " is listening...");
         // test a reply message in channel
-        bot.reply({}, 'biscoito');
+        //
+
+        // callback for incoming messages filter and processing
+        const processMessages = async (err, message, messageOptions) => {
+            if (!err) {
+                // filter our own message
+                if (message.u._id === myuserid) return;
+                // can filter further based on message.rid
+                const roomname = await driver.getRoomName(message.rid);
+                const response = 'I receive this message: ' + message.msg
+                bot.reply({channel: 'socket'}, response.text);
+                const sentmsg = await driver.sendToRoom(response, roomname);
+            }
+        }
+
+        // connect the processMessages callback
+        const msgloop = await driver.reactToMessages(processMessages);
+        console.log('connected and waiting for messages');
     }
 
     // TODO: config it's not getting the correct values inside defineBot
@@ -57,7 +74,7 @@ function RocketChatBot(botkit, config) {
 
         bot.send = async function (message, cb) {
             console.log("\ninside bot.send")
-            console.log("\nmessage: "+message.text)
+            console.log("\nmessage: " + message.text)
             if (bot.connected) {
                 // TODO: need to configure the channel parameter                
                 const sent = await driver.sendToRoom(message, ROOMS[0]);
@@ -67,39 +84,20 @@ function RocketChatBot(botkit, config) {
 
         // this function takes an incoming message (from a user) and an outgoing message (reply from bot)
         // and ensures that the reply has the appropriate fields to appear as a reply
-        bot.reply = async function (src, resp, cb) {          
-            // callback for incoming messages filter and processing
-            const processMessages = async (err, message, messageOptions) => {
-                if (!err) {
-                    // filter our own message
-                    if (message.u._id === myuserid) return;
-                    // can filter further based on message.rid
-                    const roomname = await driver.getRoomName(message.rid);
-                    const response = 'I receive this message: ' + resp.text
-                    const sentmsg = await driver.sendToRoom(response, roomname);
-                }
-            }           
-            
-            // connect the processMessages callback
-            const msgloop = await driver.reactToMessages(processMessages);
-            console.log('connected and waiting for messages');
-
+        bot.reply = async function (src, resp, cb) {
             console.log('\ninside reply')
-            console.log("\nsrc.channel: " + src.text);
+            console.log("\nsrc.channel: " + src.user);
+            console.log("\nsrc.channel: " + src.channel);
+            
             if (typeof (resp) == 'string') {
                 resp = {
                     text: resp
                 };
             }
-
-            resp.channel = 'socket';
-            resp.to = src.user;
-
-            console.log("\nbefore bot.say")
+            
+            //resp.channel = src.channel;
 
             bot.say(resp, cb);
-
-            console.log("\nafter bot.say")
         };
 
         // this function defines the mechanism by which botkit looks for ongoing conversations
@@ -123,41 +121,49 @@ function RocketChatBot(botkit, config) {
         return bot;
     })
 
+
+    controller.middleware.ingest.use(function(bot, message, reply_channel, next) {
+        console.log("\ninside middleware.ingest.use")                
+            next();
+    });
+
     // provide one or more normalize middleware functions that take a raw incoming message
     // and ensure that the key botkit fields are present -- user, channel, text, and type
     controller.middleware.normalize.use(function (bot, message, next) {
-
         console.log('NORMALIZE', message);
         next();
 
     });
 
-    controller.middleware.format.use(function (bot, message, platform_message, next) {
+    controller.middleware.format.use(function (bot, message, platform_message, next) {        
+        console.log("\ninside middleware.format.use")
+        console.log("\neessage.channel: " + message.channel);
+
         for (var k in message) {
             platform_message[k] = message[k]
         }
         next();
-        console.log("\ninside middleware.format.use")
     });
 
-    controller.middleware.categorize.use(function(bot, message, next) {
-        console.log("\ninside middleware.categorize.use")
+    controller.middleware.categorize.use(function (bot, message, next) {
+        console.log("\ninside middleware.categorize.use");
+        console.log("\neessage.channel: " + message.channel);
+
         if (message.type == 'message') {
             message.type = 'message_received';
         }
 
         next();
-
     });
 
     // provide a way to receive messages - normally by handling an incoming webhook as below!
-    controller.handleWebhookPayload = function (req, res) {        
-        // var payload = req.body;
+    controller.handleWebhookPayload = function (req, res) {
+        var payload = req.body;
 
-        // var bot = controller.spawn({});
-        // controller.ingest(bot, payload, res);
+        var bot = controller.spawn({});
+        controller.ingest(bot, payload, res);
 
-        // res.status(200);
+        res.status(200);
     };
 
     return controller;
