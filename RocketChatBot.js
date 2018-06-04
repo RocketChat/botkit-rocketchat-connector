@@ -1,4 +1,4 @@
-// TODO: need to make it relative path
+// TO DO: need to make it relative path
 var Botkit = require('./node_modules/botkit/lib/CoreBot.js');
 const { driver } = require('@rocket.chat/sdk');
 
@@ -25,16 +25,15 @@ function RocketChatBot(botkit, config) {
             // set up subscriptions - rooms we are interested in listening to
             const subscribed = await driver.subscribeToMessages();
             console.log('subscribed');
-            // TODO: need to verify the real connection
+            // TO DO: need to verify the real connection
             bot.connected = true;
         } catch (error) {
             bot.connected = false;
             console.log(error);
         }
         // send the first message to channel
-        bot.send(config.rocketchat_bot_user + " is listening...");
-        // test a reply message in channel
-        //
+        bot.send({text: config.rocketchat_bot_user + " is listening..."});
+        //bot.reply({ channel: 'socket' }, config.rocketchat_bot_user + " is listening...");
 
         // callback for incoming messages filter and processing
         const processMessages = async (err, message, messageOptions) => {
@@ -43,9 +42,10 @@ function RocketChatBot(botkit, config) {
                 if (message.u._id === myuserid) return;
                 // can filter further based on message.rid
                 const roomname = await driver.getRoomName(message.rid);
-                const response = 'I receive this message: ' + message.msg
-                bot.reply({channel: 'socket'}, response.text);
-                const sentmsg = await driver.sendToRoom(response, roomname);
+                const response = message.msg
+                // TO DO: verify if it is needed to call bot.reply in here to
+                // make the reply feature work.
+                bot.reply({ channel: 'socket' }, response);
             }
         }
 
@@ -54,7 +54,7 @@ function RocketChatBot(botkit, config) {
         console.log('connected and waiting for messages');
     }
 
-    // TODO: config it's not getting the correct values inside defineBot
+    // TO DO: config it's not getting the correct values inside defineBot
     controller.defineBot(function (botkit, config) {
         console.log('Inside defineBot');
         var bot = {
@@ -74,10 +74,10 @@ function RocketChatBot(botkit, config) {
 
         bot.send = async function (message, cb) {
             console.log("\ninside bot.send")
-            console.log("\nmessage: " + message.text)
+            console.log("\nmessage.text: " + message.text)
             if (bot.connected) {
-                // TODO: need to configure the channel parameter                
-                const sent = await driver.sendToRoom(message, ROOMS[0]);
+                // TO DO: need to configure the channel parameter                
+                const sent = await driver.sendToRoom(message.text, ROOMS[0]);
                 console.log('SEND: ', message);
             }
         }
@@ -86,18 +86,21 @@ function RocketChatBot(botkit, config) {
         // and ensures that the reply has the appropriate fields to appear as a reply
         bot.reply = async function (src, resp, cb) {
             console.log('\ninside reply')
-            console.log("\nsrc.channel: " + src.user);
+            console.log("\nsrc.user: " + src.user);
             console.log("\nsrc.channel: " + src.channel);
-            
+            console.log("\nresp: "+ resp)
+
             if (typeof (resp) == 'string') {
                 resp = {
                     text: resp
                 };
             }
-            
-            //resp.channel = src.channel;
 
-            bot.say(resp, cb);
+            // TO DO: Verify what kind of channels exists in botkit and if the
+            // channel "socket" is the best option.
+            //resp.channel = src.channel;            
+
+            bot.say(resp, cb);            
         };
 
         // this function defines the mechanism by which botkit looks for ongoing conversations
@@ -122,22 +125,23 @@ function RocketChatBot(botkit, config) {
     })
 
 
-    controller.middleware.ingest.use(function(bot, message, reply_channel, next) {
-        console.log("\ninside middleware.ingest.use")                
-            next();
+    // TO DO: Verify if this middleware is really needed.
+    controller.middleware.ingest.use(function (bot, message, reply_channel, next) {
+        console.log("\ninside middleware.ingest.use")
+        next();
     });
 
     // provide one or more normalize middleware functions that take a raw incoming message
     // and ensure that the key botkit fields are present -- user, channel, text, and type
     controller.middleware.normalize.use(function (bot, message, next) {
+        console.log("\ninside middleware.normalize.use")
         console.log('NORMALIZE', message);
         next();
-
     });
 
-    controller.middleware.format.use(function (bot, message, platform_message, next) {        
+    controller.middleware.format.use(function (bot, message, platform_message, next) {
         console.log("\ninside middleware.format.use")
-        console.log("\neessage.channel: " + message.channel);
+        //console.log("\neessage.channel: " + message.channel);
 
         for (var k in message) {
             platform_message[k] = message[k]
@@ -152,7 +156,6 @@ function RocketChatBot(botkit, config) {
         if (message.type == 'message') {
             message.type = 'message_received';
         }
-
         next();
     });
 
