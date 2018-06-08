@@ -32,7 +32,10 @@ function RocketChatBot(botkit, config) {
             console.log(error);
         }
 
+        // Here it's a way to make the bot always trigger controller.ingest
+        // when a message is sent to the channel.
         driver.respondToMessages((message) => {
+            console.log("\ninside driver.responToMessages")
             // this is a message example.
             var message = {
                 type: 'message',
@@ -41,6 +44,7 @@ function RocketChatBot(botkit, config) {
                 channel: 'socket',
                 user_profile: null
             }
+
             controller.ingest(bot, message);
         })
 
@@ -76,14 +80,6 @@ function RocketChatBot(botkit, config) {
             utterances: botkit.utterances,
         }
 
-        bot.startConversation = function (message, cb) {
-            botkit.startConversation(this, message, cb);
-        };
-
-        bot.createConversation = function (message, cb) {
-            botkit.createConversation(this, message, cb);
-        };
-
         bot.send = async function (message, cb) {
             console.log("\ninside bot.send")
             console.log("\nmessage.text: " + message.text)
@@ -98,23 +94,22 @@ function RocketChatBot(botkit, config) {
         // and ensures that the reply has the appropriate fields to appear as a reply
         bot.reply = async function (src, resp, cb) {
             console.log('\ninside reply')
-            console.log("\nsrc.user: " + src.user);
-            console.log("\nsrc.channel: " + src.channel);
-            console.log("\nresp: " + resp)
+            console.log(resp)
 
             if (typeof (resp) == 'string') {
                 resp = {
                     text: resp
                 };
             }
-            
+
             // TO DO: Verify what kind of channels, types and users exists 
             // in botkit and if this is the best option.
             resp.type = 'message'
             resp.user = ''
-            resp.channel = 'socket'            
+            resp.channel = 'socket'
 
             bot.say(resp, cb);
+            //controller.ingest(bot, resp);
         };
 
         // this function defines the mechanism by which botkit looks for ongoing conversations
@@ -135,13 +130,16 @@ function RocketChatBot(botkit, config) {
             }
             cb();
         };
+
         return bot;
     })
 
 
-    // TO DO: Verify if this middleware is really needed.
+    // TO DO: This middleware it's not really needed, but more configurations
+    // will be needed here to make the ingest works.
     controller.middleware.ingest.use(function (bot, message, reply_channel, next) {
         console.log("\ninside middleware.ingest.use")
+        console.log(message)
         next();
     });
 
@@ -149,10 +147,14 @@ function RocketChatBot(botkit, config) {
     // and ensure that the key botkit fields are present -- user, channel, text, and type
     controller.middleware.normalize.use(function (bot, message, next) {
         console.log("\ninside middleware.normalize.use")
+        console.log(message)
         //console.log('NORMALIZE', message);
         next();
     });
 
+    // provide one or more ways to format outgoing messages from botkit messages into 
+    // the necessary format required by the platform API
+    // at a minimum, copy all fields from `message` to `platform_message`
     controller.middleware.format.use(function (bot, message, platform_message, next) {
         console.log("\ninside middleware.format.use")
         //console.log("\neessage.channel: " + message.channel);
@@ -163,9 +165,10 @@ function RocketChatBot(botkit, config) {
         next();
     });
 
+    // This is needed to find the botkit output.
     controller.middleware.categorize.use(function (bot, message, next) {
         console.log("\ninside middleware.categorize.use");
-        console.log("\neessage.channel: " + message.channel);
+        console.log("\nmessage.channel: " + message.channel);
 
         if (message.type == 'message') {
             message.type = 'message_received';
