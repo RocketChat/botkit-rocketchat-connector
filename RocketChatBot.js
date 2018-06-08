@@ -31,9 +31,21 @@ function RocketChatBot(botkit, config) {
             bot.connected = false;
             console.log(error);
         }
+
+        driver.respondToMessages((message) => {
+            // this is a message example.
+            var message = {
+                type: 'message',
+                text: 'bolacha',
+                user: '',
+                channel: 'socket',
+                user_profile: null
+            }
+            controller.ingest(bot, message);
+        })
+
         // send the first message to channel
-        bot.send({text: config.rocketchat_bot_user + " is listening..."});
-        //bot.reply({ channel: 'socket' }, config.rocketchat_bot_user + " is listening...");
+        bot.send({ text: config.rocketchat_bot_user + " is listening..." });
 
         // callback for incoming messages filter and processing
         const processMessages = async (err, message, messageOptions) => {
@@ -45,7 +57,7 @@ function RocketChatBot(botkit, config) {
                 const response = message.msg
                 // TO DO: verify if it is needed to call bot.reply in here to
                 // make the reply feature work.
-                bot.reply({ channel: 'socket' }, response);
+                bot.reply({}, response);
             }
         }
 
@@ -88,19 +100,21 @@ function RocketChatBot(botkit, config) {
             console.log('\ninside reply')
             console.log("\nsrc.user: " + src.user);
             console.log("\nsrc.channel: " + src.channel);
-            console.log("\nresp: "+ resp)
+            console.log("\nresp: " + resp)
 
             if (typeof (resp) == 'string') {
                 resp = {
                     text: resp
                 };
             }
+            
+            // TO DO: Verify what kind of channels, types and users exists 
+            // in botkit and if this is the best option.
+            resp.type = 'message'
+            resp.user = ''
+            resp.channel = 'socket'            
 
-            // TO DO: Verify what kind of channels exists in botkit and if the
-            // channel "socket" is the best option.
-            //resp.channel = src.channel;            
-
-            bot.say(resp, cb);            
+            bot.say(resp, cb);
         };
 
         // this function defines the mechanism by which botkit looks for ongoing conversations
@@ -135,7 +149,7 @@ function RocketChatBot(botkit, config) {
     // and ensure that the key botkit fields are present -- user, channel, text, and type
     controller.middleware.normalize.use(function (bot, message, next) {
         console.log("\ninside middleware.normalize.use")
-        console.log('NORMALIZE', message);
+        //console.log('NORMALIZE', message);
         next();
     });
 
