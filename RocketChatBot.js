@@ -2,16 +2,15 @@
 var Botkit = require('./node_modules/botkit/lib/CoreBot.js');
 const { driver } = require('@rocket.chat/sdk');
 
-const ROOMS = ['GENERAL'];
-const SSL = false;
-
-
 function RocketChatBot(botkit, config) {
     console.log("Inside RocketChatBot");
-
+    
+    var myuserid;
     var controller = Botkit(config || {});
 
-    var myuserid;
+    // Transform the string value to bool.
+    var SSL = (config.rocketchat_ssl === 'true')
+    console.log(SSL)
 
     controller.startBot = async () => {
         // insert to var bot bot.defineBot()
@@ -20,7 +19,7 @@ function RocketChatBot(botkit, config) {
             // make the connection with RocketChat
             const conn = await driver.connect({ host: config.rocketchat_host, useSsl: SSL })
             myuserid = await driver.login({ username: config.rocketchat_bot_user, password: config.rocketchat_bot_pass });
-            const roomsJoined = await driver.joinRooms(ROOMS);
+            const roomsJoined = await driver.joinRooms([config.rocketchat_bot_rooms]);
             console.log('joined rooms');
             // set up subscriptions - rooms we are interested in listening to
             const subscribed = await driver.subscribeToMessages();
@@ -85,7 +84,7 @@ function RocketChatBot(botkit, config) {
             console.log("\nmessage.text: " + message.text)
             if (bot.connected) {
                 // TO DO: need to configure the channel parameter                
-                const sent = await driver.sendToRoom(message.text, ROOMS[0]);
+                const sent = await driver.sendToRoom(message.text, config.rocketchat_bot_rooms);
                 console.log('SEND: ', message);
             }
         }
@@ -178,9 +177,17 @@ function RocketChatBot(botkit, config) {
 
     // provide a way to receive messages - normally by handling an incoming webhook as below!
     controller.handleWebhookPayload = function (req, res) {
+        console.log("\ninside controller.handleWebhookPayload")
+        
         var payload = req.body;
 
         var bot = controller.spawn({});
+        console.log("\nbot:")
+        console.log(bot)
+        console.log("\npayload:")
+        console.log(payload)
+        console.log("\nres:")
+        console.log(res)
         controller.ingest(bot, payload, res);
 
         res.status(200);
