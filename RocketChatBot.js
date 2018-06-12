@@ -20,47 +20,42 @@ function RocketChatBot(botkit, config) {
             const conn = await driver.connect({ host: config.rocketchat_host, useSsl: SSL })
             myuserid = await driver.login({ username: config.rocketchat_bot_user, password: config.rocketchat_bot_pass });
             const roomsJoined = await driver.joinRooms([config.rocketchat_bot_rooms]);
-            console.log('joined rooms');
+            //console.log('joined rooms');
             // set up subscriptions - rooms we are interested in listening to
             const subscribed = await driver.subscribeToMessages();
-            console.log('subscribed');
-            // TO DO: need to verify the real connection
+            //console.log('subscribed');
+            // TO DO: need to improve a way to verify the connection with rocketchat
             bot.connected = true;
         } catch (error) {
             bot.connected = false;
             console.log(error);
         }
 
-        // Here it's a way to make the bot always trigger controller.ingest
-        // when a message is sent to the channel.
-        driver.respondToMessages((message) => {
-            console.log("\ninside driver.responToMessages")
-            // this is a message example.
-            var message = {
-                type: 'message',
-                text: 'bolacha',
-                user: '',
-                channel: 'socket',
-                user_profile: null
-            }
-
-            controller.ingest(bot, message);
-        })
-
         // send the first message to channel
         bot.send({ text: config.rocketchat_bot_user + " is listening..." });
 
         // callback for incoming messages filter and processing
         const processMessages = async (err, message, messageOptions) => {
+            console.log("\nInside processMessages ")
             if (!err) {
+                console.log("\nInside processMessages !err")
+                console.log(message)
                 // filter our own message
                 if (message.u._id === myuserid) return;
                 // can filter further based on message.rid
                 const roomname = await driver.getRoomName(message.rid);
-                const response = message.msg
+                var response = {
+                    user: '',
+                    channel: 'socket',            
+                    text: message.msg
+                }
                 // TO DO: verify if it is needed to call bot.reply in here to
                 // make the reply feature work.
-                bot.reply({}, response);
+                //bot.reply({}, response);
+
+                console.log("\nreposne:")
+                console.log(response)
+                controller.ingest(bot,response)                
             }
         }
 
@@ -83,7 +78,7 @@ function RocketChatBot(botkit, config) {
             console.log("\ninside bot.send")
             console.log("\nmessage.text: " + message.text)
             if (bot.connected) {
-                // TO DO: need to configure the channel parameter                
+                // TO DO: need to configure the channel parameter to send to more than one channel               
                 const sent = await driver.sendToRoom(message.text, config.rocketchat_bot_rooms);
                 console.log('SEND: ', message);
             }
@@ -108,7 +103,6 @@ function RocketChatBot(botkit, config) {
             resp.channel = 'socket'
 
             bot.say(resp, cb);
-            //controller.ingest(bot, resp);
         };
 
         // this function defines the mechanism by which botkit looks for ongoing conversations
@@ -134,18 +128,10 @@ function RocketChatBot(botkit, config) {
     })
 
 
-    // TO DO: This middleware it's not really needed, but more configurations
-    // will be needed here to make the ingest works.
-    controller.middleware.ingest.use(function (bot, message, reply_channel, next) {
-        console.log("\ninside middleware.ingest.use")
-        console.log(message)
-        next();
-    });
-
     // provide one or more normalize middleware functions that take a raw incoming message
     // and ensure that the key botkit fields are present -- user, channel, text, and type
     controller.middleware.normalize.use(function (bot, message, next) {
-        console.log("\ninside middleware.normalize.use")
+        console.log("\n*inside middleware.normalize.use")
         console.log(message)
         //console.log('NORMALIZE', message);
         next();
@@ -155,8 +141,7 @@ function RocketChatBot(botkit, config) {
     // the necessary format required by the platform API
     // at a minimum, copy all fields from `message` to `platform_message`
     controller.middleware.format.use(function (bot, message, platform_message, next) {
-        console.log("\ninside middleware.format.use")
-        //console.log("\neessage.channel: " + message.channel);
+        console.log("\n*inside middleware.format.use")
 
         for (var k in message) {
             platform_message[k] = message[k]
@@ -164,34 +149,16 @@ function RocketChatBot(botkit, config) {
         next();
     });
 
-    // This is needed to find the botkit output.
     controller.middleware.categorize.use(function (bot, message, next) {
-        console.log("\ninside middleware.categorize.use");
-        console.log("\nmessage.channel: " + message.channel);
+        console.log("\n*inside middleware.categorize.use");
+        console.log("\nmessage:");
+        console.log(message)
 
-        if (message.type == 'message') {
-            message.type = 'message_received';
-        }
+        // if (message.type == 'message') {
+        //     message.type = 'message_received';
+        // }
         next();
     });
-
-    // provide a way to receive messages - normally by handling an incoming webhook as below!
-    controller.handleWebhookPayload = function (req, res) {
-        console.log("\ninside controller.handleWebhookPayload")
-        
-        var payload = req.body;
-
-        var bot = controller.spawn({});
-        console.log("\nbot:")
-        console.log(bot)
-        console.log("\npayload:")
-        console.log(payload)
-        console.log("\nres:")
-        console.log(res)
-        controller.ingest(bot, payload, res);
-
-        res.status(200);
-    };
 
     return controller;
 }
