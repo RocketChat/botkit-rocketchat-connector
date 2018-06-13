@@ -8,7 +8,7 @@ function RocketChatBot(botkit, config) {
     var myuserid;
     var controller = Botkit(config || {});
 
-    // Transform the string value to bool.
+    // transform the string value from .env to bool.
     var SSL = (config.rocketchat_ssl === 'true')
     console.log(SSL)
 
@@ -31,7 +31,8 @@ function RocketChatBot(botkit, config) {
             console.log(error);
         }
 
-        // send the first message to channel
+        // TO DO: The first message sent it's not from the botkit, need
+        // to configure the 'wellcome_message' to be the first message.
         bot.send({ text: config.rocketchat_bot_user + " is listening..." });
 
         // callback for incoming messages filter and processing
@@ -45,13 +46,11 @@ function RocketChatBot(botkit, config) {
                 // can filter further based on message.rid
                 const roomname = await driver.getRoomName(message.rid);
                 var response = {
+                    type: 'message',
                     user: '',
                     channel: 'socket',            
                     text: message.msg
                 }
-                // TO DO: verify if it is needed to call bot.reply in here to
-                // make the reply feature work.
-                //bot.reply({}, response);
 
                 console.log("\nreposne:")
                 console.log(response)
@@ -63,10 +62,9 @@ function RocketChatBot(botkit, config) {
         const msgloop = await driver.reactToMessages(processMessages);
         console.log('connected and waiting for messages');
     }
-
-    // TO DO: config it's not getting the correct values inside defineBot
+    
     controller.defineBot(function (botkit, config) {
-        console.log('Inside defineBot');
+        console.log('Inside defineBot');        
         var bot = {
             type: 'rocketchat',
             botkit: botkit,
@@ -78,14 +76,14 @@ function RocketChatBot(botkit, config) {
             console.log("\ninside bot.send")
             console.log("\nmessage.text: " + message.text)
             if (bot.connected) {
-                // TO DO: need to configure the channel parameter to send to more than one channel               
+                // TO DO: need to configure the channel parameter to send to 
+                // more than one channel. Now is a simple string that came from
+                // .env file inside the Starterkit
                 const sent = await driver.sendToRoom(message.text, config.rocketchat_bot_rooms);
                 console.log('SEND: ', message);
             }
         }
-
-        // this function takes an incoming message (from a user) and an outgoing message (reply from bot)
-        // and ensures that the reply has the appropriate fields to appear as a reply
+        
         bot.reply = async function (src, resp, cb) {
             console.log('\ninside reply')
             console.log(resp)
@@ -96,8 +94,8 @@ function RocketChatBot(botkit, config) {
                 };
             }
 
-            // TO DO: Verify what kind of channels, types and users exists 
-            // in botkit and if this is the best option.
+            // TO DO: This data is sent inside the src object, but the src have
+            // not the correct content hight now.
             resp.type = 'message'
             resp.user = ''
             resp.channel = 'socket'
@@ -107,33 +105,39 @@ function RocketChatBot(botkit, config) {
 
         // this function defines the mechanism by which botkit looks for ongoing conversations
         // probably leave as is!
+        // TO DO: When this function is uncommented the code just answer the
+        // first message sent. Need to solve it.
         bot.findConversation = function (message, cb) {
             console.log("\ninside bot.findConversation")
-            for (var t = 0; t < botkit.tasks.length; t++) {
-                for (var c = 0; c < botkit.tasks[t].convos.length; c++) {
-                    if (
-                        botkit.tasks[t].convos[c].isActive() &&
-                        botkit.tasks[t].convos[c].source_message.user == message.user &&
-                        botkit.excludedEvents.indexOf(message.type) == -1 // this type of message should not be included
-                    ) {
-                        cb(botkit.tasks[t].convos[c]);
-                        return;
-                    }
-                }
-            }
+            console.log(message)
+            // for (var t = 0; t < botkit.tasks.length; t++) {
+            //     console.log("\nfindConversation FOR1")
+            //     for (var c = 0; c < botkit.tasks[t].convos.length; c++) {
+            //         console.log("\nfindConversation FOR2")
+            //         if (
+            //             botkit.tasks[t].convos[c].isActive() &&
+            //             botkit.tasks[t].convos[c].source_message.user == message.user &&
+            //             botkit.excludedEvents.indexOf(message.type) == -1 // this type of message should not be included
+            //         ) {
+            //             console.log("\nfindConversation IF")
+            //             console.log(message)
+            //             console.log(cb(botkit.tasks[t].convos[c]))
+            //             cb(botkit.tasks[t].convos[c]);
+            //             return;
+            //         }
+            //     }
+            // }
             cb();
         };
 
         return bot;
     })
 
-
     // provide one or more normalize middleware functions that take a raw incoming message
     // and ensure that the key botkit fields are present -- user, channel, text, and type
     controller.middleware.normalize.use(function (bot, message, next) {
         console.log("\n*inside middleware.normalize.use")
         console.log(message)
-        //console.log('NORMALIZE', message);
         next();
     });
 
@@ -154,9 +158,9 @@ function RocketChatBot(botkit, config) {
         console.log("\nmessage:");
         console.log(message)
 
-        // if (message.type == 'message') {
-        //     message.type = 'message_received';
-        // }
+        if (message.type == 'message') {
+            message.type = 'message_received';
+        }
         next();
     });
 
