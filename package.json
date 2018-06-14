@@ -4,7 +4,7 @@
   "description": "A external connector to integrates botkit with RocketChat",
   "main": "RocketChatBot.js",
   "dependencies": {
-    "@rocket.chat/sdk": "^0.2.1",
+    "@rocket.chat/sdk": "^0.2.2",
     "botkit": "^0.6.14",
     "hoek": "^4.2.1"
   },
