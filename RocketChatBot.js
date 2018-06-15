@@ -1,12 +1,10 @@
-// TO DO: need to make it relative path
-var Botkit = require('./node_modules/botkit/lib/CoreBot.js');
+var Botkit = require('botkit');
 const { driver } = require('@rocket.chat/sdk');
 
 function RocketChatBot(botkit, config) {
     console.log("Inside RocketChatBot");
-    
     var myuserid;
-    var controller = Botkit(config || {});
+    var controller = Botkit.core(config || {});
 
     // transform the string value from .env to bool.
     var SSL = (config.rocketchat_ssl === 'true')
@@ -48,13 +46,13 @@ function RocketChatBot(botkit, config) {
                 var response = {
                     type: 'message',
                     user: '',
-                    channel: 'socket',            
+                    channel: 'socket',
                     text: message.msg
                 }
 
                 console.log("\nreposne:")
                 console.log(response)
-                controller.ingest(bot,response)                
+                controller.ingest(bot, response)
             }
         }
 
@@ -62,9 +60,9 @@ function RocketChatBot(botkit, config) {
         const msgloop = await driver.reactToMessages(processMessages);
         console.log('connected and waiting for messages');
     }
-    
+
     controller.defineBot(function (botkit, config) {
-        console.log('Inside defineBot');        
+        console.log('Inside defineBot');
         var bot = {
             type: 'rocketchat',
             botkit: botkit,
@@ -83,7 +81,7 @@ function RocketChatBot(botkit, config) {
                 console.log('SEND: ', message);
             }
         }
-        
+
         bot.reply = async function (src, resp, cb) {
             console.log('\ninside reply')
             console.log(resp)
