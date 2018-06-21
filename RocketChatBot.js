@@ -33,31 +33,43 @@ function RocketChatBot(botkit, config) {
         // to configure the 'wellcome_message' to be the first message.
         bot.send({ text: config.rocketchat_bot_user + " is listening..." });
 
-        // callback for incoming messages filter and processing
-        const processMessages = async (err, message, messageOptions) => {
-            console.log("\nInside processMessages ")
-            if (!err) {
-                console.log("\nInside processMessages !err")
-                console.log(message)
-                // filter our own message
-                if (message.u._id === myuserid) return;
-                // can filter further based on message.rid
-                const roomname = await driver.getRoomName(message.rid);
-                var response = {
-                    type: 'message',
-                    user: '',
-                    channel: 'socket',
-                    text: message.msg
-                }
-
-                console.log("\nreposne:")
-                console.log(response)
-                controller.ingest(bot, response)
-            }
+        // Define where the bot can interact
+        var options = {
+            rooms: true,
+            dm: true,
+            livechat: true,
+            edited: true
         }
 
+        driver.respondToMessages(async function (err, message, meta) {
+            console.log("\n----------")
+            console.log("\n inside respondToMessages");
+            console.log("\n----------")
+            const isDirectMessage = (meta.roomType === 'd')
+            const isLiveChat = (meta.roomType === 'l')
+            const isChannel = (meta.roomType === 'c')
+
+
+            var response = {
+                type: 'message',
+                user: '',
+                channel: 'socket',
+                text: message.msg
+            }
+            
+            if (isDirectMessage) {
+                //const sentmsg = await driver.sendDirectToUser("SHABLAW", message.u.username);
+                controller.ingest(bot, response)
+            } else if (isLiveChat) {
+                // Implement answer to livechat
+            } else if (isChannel) {
+                controller.ingest(bot, response)
+            }
+        }, options);
+
+
         // connect the processMessages callback
-        const msgloop = await driver.reactToMessages(processMessages);
+        //const msgloop = await driver.reactToMessages(processMessages);
         console.log('connected and waiting for messages');
     }
 
