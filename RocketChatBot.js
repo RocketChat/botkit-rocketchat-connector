@@ -4,6 +4,8 @@ const { driver } = require('@rocket.chat/sdk');
 function RocketChatBot(botkit, config) {
     console.log("Inside RocketChatBot");
     var myuserid;
+    var verifyMessageSource;
+    var userName;
     var controller = Botkit.core(config || {});
 
     // transform the string value from .env to bool.
@@ -31,8 +33,41 @@ function RocketChatBot(botkit, config) {
 
         // TO DO: The first message sent it's not from the botkit, need
         // to configure the 'wellcome_message' to be the first message.
-        bot.send({ text: config.rocketchat_bot_user + " is listening..." });
+        //bot.send({ text: config.rocketchat_bot_user + " is listening..." });
 
+        // // Define where the bot can interact
+        // var options = {
+        //     rooms: true,
+        //     dm: true,
+        //     livechat: true,
+        //     edited: true
+        // }}
+
+        // driver.respondToMessages(async function (err, message, meta) {
+        //     console.log("\n----------")
+        //     console.log("\ninside respondToMessages");
+        //     console.log("\n----------")
+        //     const isDirectMessage = (meta.roomType === 'd')
+        //     const isLiveChat = (meta.roomType === 'l')
+        //     const isChannel = (meta.roomType === 'c')
+
+
+        //     var response = {
+        //         type: 'message',
+        //         user: '',
+        //         channel: 'socket',
+        //         text: message.msg
+        //     }
+
+        //     if (isDirectMessage) {
+        //         //const sentmsg = await driver.sendDirectToUser("SHABLAW", message.u.username);
+        //         controller.ingest(bot, response)
+        //     } else if (isLiveChat) {
+        //         // Implement answer to livechat
+        //     } else if (isChannel) {
+        //         controller.ingest(bot, response)
+        //     }
+        // }, options);
         // Define where the bot can interact
         var options = {
             rooms: true,
@@ -42,13 +77,17 @@ function RocketChatBot(botkit, config) {
         }
 
         driver.respondToMessages(async function (err, message, meta) {
-            console.log("\n----------")
-            console.log("\n inside respondToMessages");
-            console.log("\n----------")
+            console.log("\ninside respondToMessages");
             const isDirectMessage = (meta.roomType === 'd')
             const isLiveChat = (meta.roomType === 'l')
             const isChannel = (meta.roomType === 'c')
 
+            verifyMessageSource = {
+                isDirectMessage: isDirectMessage,
+                isLiveChat: isLiveChat,
+                isChannel: isChannel
+            }
+            userName = message.u.username;
 
             var response = {
                 type: 'message',
@@ -56,21 +95,13 @@ function RocketChatBot(botkit, config) {
                 channel: 'socket',
                 text: message.msg
             }
-            
-            if (isDirectMessage) {
-                //const sentmsg = await driver.sendDirectToUser("SHABLAW", message.u.username);
-                controller.ingest(bot, response)
-            } else if (isLiveChat) {
-                // Implement answer to livechat
-            } else if (isChannel) {
-                controller.ingest(bot, response)
+
+            try {
+                const waitBotkit = await controller.ingest(bot, response)
+            } catch (err) {
+                console.log(err)
             }
         }, options);
-
-
-        // connect the processMessages callback
-        //const msgloop = await driver.reactToMessages(processMessages);
-        console.log('connected and waiting for messages');
     }
 
     controller.defineBot(function (botkit, config) {
@@ -84,13 +115,18 @@ function RocketChatBot(botkit, config) {
 
         bot.send = async function (message, cb) {
             console.log("\ninside bot.send")
-            console.log("\nmessage.text: " + message.text)
             if (bot.connected) {
                 // TO DO: need to configure the channel parameter to send to 
                 // more than one channel. Now is a simple string that came from
-                // .env file inside the Starterkit
-                const sent = await driver.sendToRoom(message.text, config.rocketchat_bot_rooms);
-                console.log('SEND: ', message);
+                // .env file inside the Starterkit                
+                if (verifyMessageSource.isDirectMessage) {
+                    const sentdirectMessage = await driver.sendDirectToUser(message.text, userName);
+                } else if (verifyMessageSource.isLiveChat) {
+                    // Implement answer to livechat
+                } else if (verifyMessageSource.isChannel) {
+                    const sentChannel = await driver.sendToRoom(message.text, config.rocketchat_bot_rooms);
+                }
+
             }
         }
 
@@ -156,7 +192,6 @@ function RocketChatBot(botkit, config) {
     // at a minimum, copy all fields from `message` to `platform_message`
     controller.middleware.format.use(function (bot, message, platform_message, next) {
         console.log("\n*inside middleware.format.use")
-
         for (var k in message) {
             platform_message[k] = message[k]
         }
