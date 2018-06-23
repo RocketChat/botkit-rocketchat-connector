@@ -3,8 +3,6 @@ const { driver } = require('@rocket.chat/sdk');
 
 function RocketChatBot(botkit, config) {
     console.log("Inside RocketChatBot");
-    // store the RocketChat user ID
-    var myuserid;
     // store bool values to know if the message is from LiveChat, Channel or 
     // DirectMessage.
     var verifyMessageSource;
@@ -23,7 +21,7 @@ function RocketChatBot(botkit, config) {
         try {
             // make the connection with RocketChat
             const conn = await driver.connect({ host: config.rocketchat_host, useSsl: SSL })
-            myuserid = await driver.login({ username: config.rocketchat_bot_user, password: config.rocketchat_bot_pass });
+            await driver.login({ username: config.rocketchat_bot_user, password: config.rocketchat_bot_pass });
             const roomsJoined = await driver.joinRooms([config.rocketchat_bot_rooms]);
             //console.log('joined rooms');
             // set up subscriptions - rooms we are interested in listening to
