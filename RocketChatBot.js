@@ -8,6 +8,8 @@ function RocketChatBot(botkit, config) {
     var verifyMessageSource;
     // store the user name that the bot needs to answer
     var userName;
+    // store the room ID that the bot needs to answer
+    var roomID;
     // get the "brain" of Botkit
     var controller = Botkit.core(config || {});
 
@@ -60,7 +62,8 @@ function RocketChatBot(botkit, config) {
                 isChannel: isChannel
             }
 
-            userName = message.u.username;
+            userName = message.u.username;                        
+            roomID = message.rid;
 
             // TODO: needs to remove the response var and correct this step 
             var response = {
@@ -99,7 +102,7 @@ function RocketChatBot(botkit, config) {
                     // TODO: need to configure the channel parameter to send to 
                     // more than one channel. Now is a simple string that came from
                     // .env file inside the Starterkit                
-                    const sentChannel = await driver.sendToRoom(message.text, config.rocketchat_bot_rooms);
+                    const sentChannel = await driver.sendToRoomId(message.text, roomID);
                 }
 
             }
