@@ -41,7 +41,10 @@ function RocketChatBot(botkit, config) {
         } catch (error) {
             bot.connected = false;
             console.log(error);
-        }  
+        }
+
+        // send a simple message in default ROOM
+        bot.send({ text: config.rocketchat_bot_user + " is listening!" })
 
         // define where the bot can interact, this maybe can be a .env 
         // configuration.
