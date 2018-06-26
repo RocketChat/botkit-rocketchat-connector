@@ -1,6 +1,6 @@
 {
   "name": "botkit-rocketchat-connector",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "description": "A external connector to integrates botkit with RocketChat",
   "main": "RocketChatBot.js",
   "dependencies": {
