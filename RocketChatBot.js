@@ -3,9 +3,8 @@ const { driver } = require('@rocket.chat/sdk');
 
 function RocketChatBot(botkit, config) {
     console.log("Inside RocketChatBot");
-    // store bool values to know if the message is from LiveChat, Channel, 
-    // Private Channel or DirectMessage. The value isChannel is true to bot
-    // be enabled to send initial messages in chat.
+    // store values to know if the message is from LiveChat, Channel, 
+    // Private Channel or DirectMessage
     var messageSource = 'channel';
     // store the user name that the bot needs to answer
     var userName;
@@ -19,35 +18,15 @@ function RocketChatBot(botkit, config) {
     var SSL = (config.rocketchat_ssl === 'true')
     console.log(SSL)
 
-    // utils
-    async function getMessageSource(meta) {
-        var messageSource;
-        if(meta.roomType === 'd') {
-            messageSource = 'directMessage';
-        } else if(meta.roomType === 'l') {
-            messageSource = 'liveChat';
-        } else if(meta.roomType === 'c') {
-            messageSource = 'channel';
-        } else if(meta.roomType === 'p') {
-            messageSource = 'privateChannel';
-        } else {
-            messageSource = 'unknown';
-        }
-        return messageSource;
-    }
-
     controller.startBot = async () => {
         // insert to var bot bot.defineBot()
         var bot = controller.spawn(config);
         try {
             // make the connection with RocketChat
-            const conn = await driver.connect({ host: config.rocketchat_host, useSsl: SSL })
+            await driver.connect({ host: config.rocketchat_host, useSsl: SSL })
             await driver.login({ username: config.rocketchat_bot_user, password: config.rocketchat_bot_pass });
-            const roomsJoined = await driver.joinRooms([config.rocketchat_bot_rooms]);
-            //console.log('joined rooms');
-            // set up subscriptions - rooms we are interested in listening to
-            const subscribed = await driver.subscribeToMessages();
-            //console.log('subscribed');
+            await driver.joinRooms([config.rocketchat_bot_rooms]);
+            await driver.subscribeToMessages();
             // TO DO: need to improve a way to verify the connection with rocketchat
             bot.connected = true;
         } catch (error) {
@@ -82,13 +61,13 @@ function RocketChatBot(botkit, config) {
             userName = message.u.username;
             roomID = message.rid;
 
-            // TODO: needs to remove the response var and correct this step 
-            var response = {
+            // store the text from RocketChat incomming messages
+            var incommingMessage = {
                 text: message.msg
             }
 
             try {
-                await controller.ingest(bot, response)
+                await controller.ingest(bot, incommingMessage)
             } catch (err) {
                 console.log(err)
             }
@@ -114,12 +93,8 @@ function RocketChatBot(botkit, config) {
                 } else if (messageSource === 'privateChannel') {
                     await driver.sendToRoomId(message.text, roomID);
                 } else if (messageSource === 'channel') {
-                    // TODO: need to configure the channel parameter to send to 
-                    // more than one channel. Now is a simple string that came from
-                    // .env file inside the Starterkit                
                     await driver.sendToRoomId(message.text, roomID);
                 }
-
             }
         }
 
@@ -137,28 +112,30 @@ function RocketChatBot(botkit, config) {
 
         // this function defines the mechanism by which botkit looks for ongoing conversations
         // probably leave as is!
-        // TODO: When this function is uncommented the code just answer the
-        // first message sent. Need to solve it.
         bot.findConversation = function (message, cb) {
-            console.log("\n=>inside bot.findConversation")
+            console.log("\n*inside bot.findConversation")
             console.log(message)
-            // for (var t = 0; t < botkit.tasks.length; t++) {
-            //     console.log("\nfindConversation FOR1")
-            //     for (var c = 0; c < botkit.tasks[t].convos.length; c++) {
-            //         console.log("\nfindConversation FOR2")
-            //         if (
-            //             botkit.tasks[t].convos[c].isActive() &&
-            //             botkit.tasks[t].convos[c].source_message.user == message.user &&
-            //             botkit.excludedEvents.indexOf(message.type) == -1 // this type of message should not be included
-            //         ) {
-            //             console.log("\nfindConversation IF")
-            //             console.log(message)
-            //             console.log(cb(botkit.tasks[t].convos[c]))
-            //             cb(botkit.tasks[t].convos[c]);
-            //             return;
-            //         }
-            //     }
-            // }
+            if (messageSource == 'directMessage' || messageSource == 'liveChat' ||
+                messageSource == 'privateChannel' || messageSource == 'channel') {
+                for (var t = 0; t < botkit.tasks.length; t++) {
+                    console.log("\nfindConversation FOR1")
+                    for (var c = 0; c < botkit.tasks[t].convos.length; c++) {
+                        console.log("\nfindConversation FOR2")
+                        console.log(botkit.tasks[t].convos[c].source_message)
+                        if (
+                            botkit.tasks[t].convos[c].isActive() &&
+                            botkit.tasks[t].convos[c].source_message.user == message.user &&
+                            botkit.tasks[t].convos[c].source_message.channel == message.channel &&
+                            botkit.excludedEvents.indexOf(message.type) == -1 // this type of message should not be included
+                        ) {
+                            console.log("\nfindConversation IF")
+                            console.log(message)
+                            cb(botkit.tasks[t].convos[c]);
+                            //return;
+                        }
+                    }
+                }
+            }
             cb();
         };
         return bot;
@@ -167,8 +144,7 @@ function RocketChatBot(botkit, config) {
     // provide one or more normalize middleware functions that take a raw incoming message
     // and ensure that the key botkit fields are present -- user, channel, text, and type
     controller.middleware.normalize.use(function (bot, message, next) {
-        console.log("\n*inside middleware.normalize.use")
-        //message.type = 'message'
+        console.log("\n*inside middleware.normalize.use");
         message.user = userName;
         message.channel = roomID;
         next();
@@ -179,16 +155,40 @@ function RocketChatBot(botkit, config) {
     // at a minimum, copy all fields from `message` to `platform_message`
     controller.middleware.format.use(function (bot, message, platform_message, next) {
         console.log("\n*inside middleware.format.use")
+        console.log(message)
         for (var k in message) {
             platform_message[k] = message[k]
+        }
+        if (!platform_message.type) {
+            platform_message.type = 'message';
         }
         next();
     });
 
     controller.middleware.categorize.use(function (bot, message, next) {
         console.log("\n*inside middleware.categorize.use");
+        if (message.type == 'message') {
+            message.type = 'message_received';
+        }
         next();
     });
+
+    // utils
+    async function getMessageSource(meta) {
+        var messageSource;
+        if (meta.roomType === 'd') {
+            messageSource = 'directMessage';
+        } else if (meta.roomType === 'l') {
+            messageSource = 'liveChat';
+        } else if (meta.roomType === 'c') {
+            messageSource = 'channel';
+        } else if (meta.roomType === 'p') {
+            messageSource = 'privateChannel';
+        } else {
+            messageSource = 'unknown';
+        }
+        return messageSource;
+    }
 
     return controller;
 }
