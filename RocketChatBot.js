@@ -10,13 +10,11 @@ function RocketChatBot(botkit, config) {
     var userName;
     // store the room ID that the bot needs to answer. Initilize with the
     // room defined in .env file
-    var roomID = config.rocketchat_bot_rooms;
+    var roomID = config.rocketchat_bot_room;
     // get the "brain" of Botkit
     var controller = Botkit.core(config || {});
-
     // transform the string value from .env to bool.
     var SSL = (config.rocketchat_ssl === 'true')
-    console.log(SSL)
 
     controller.startBot = async () => {
         // insert to var bot bot.defineBot()
@@ -25,53 +23,51 @@ function RocketChatBot(botkit, config) {
             // make the connection with RocketChat
             await driver.connect({ host: config.rocketchat_host, useSsl: SSL })
             await driver.login({ username: config.rocketchat_bot_user, password: config.rocketchat_bot_pass });
-            await driver.joinRooms([config.rocketchat_bot_rooms]);
+            await driver.joinRooms([config.rocketchat_bot_room]);
             await driver.subscribeToMessages();
-            // TO DO: need to improve a way to verify the connection with rocketchat
             bot.connected = true;
         } catch (error) {
             bot.connected = false;
             console.log(error);
         }
 
-        // send a simple message in default ROOM
-        bot.send({ text: config.rocketchat_bot_user + " is listening!" })
+        if (bot.connected) {
+            // send a simple message in default ROOM
+            bot.send({ text: config.rocketchat_bot_user + " is listening!" })
 
-        // define where the bot can interact, this maybe can be a .env 
-        // configuration.
-        var options = {
-            rooms: true,
-            dm: true,
-            livechat: true,
-            edited: true
+            var options = {
+                dm: config.rocketchat_bot_direct_messages,
+                livechat: config.rocketchat_bot_live_chat,
+                edited: config.rocketchat_bot_edited
+            }
+
+            // trigger when every message is sent from any source enabled from
+            // options
+            driver.respondToMessages(async function (err, message, meta) {
+                console.log("\ninside respondToMessages");
+                // gets the source of the message and store it in this vars
+                const isDirectMessage = (meta.roomType === 'd')
+                const isLiveChat = (meta.roomType === 'l')
+                const isChannel = (meta.roomType === 'c')
+                const isPrivateChannel = (meta.roomType === 'p')
+
+                messageSource = await getMessageSource(meta);
+
+                userName = message.u.username;
+                roomID = message.rid;
+
+                // store the text from RocketChat incomming messages
+                var incommingMessage = {
+                    text: message.msg
+                }
+
+                try {
+                    await controller.ingest(bot, incommingMessage)
+                } catch (err) {
+                    console.log(err)
+                }
+            }, options);
         }
-
-        // trigger when every message is sent from any source enabled from
-        // options
-        driver.respondToMessages(async function (err, message, meta) {
-            console.log("\ninside respondToMessages");
-            // gets the source of the message and store it in this vars
-            const isDirectMessage = (meta.roomType === 'd')
-            const isLiveChat = (meta.roomType === 'l')
-            const isChannel = (meta.roomType === 'c')
-            const isPrivateChannel = (meta.roomType === 'p')
-
-            messageSource = await getMessageSource(meta);
-
-            userName = message.u.username;
-            roomID = message.rid;
-
-            // store the text from RocketChat incomming messages
-            var incommingMessage = {
-                text: message.msg
-            }
-
-            try {
-                await controller.ingest(bot, incommingMessage)
-            } catch (err) {
-                console.log(err)
-            }
-        }, options);
     }
 
     controller.defineBot(function (botkit, config) {
@@ -113,23 +109,16 @@ function RocketChatBot(botkit, config) {
         // this function defines the mechanism by which botkit looks for ongoing conversations
         // probably leave as is!
         bot.findConversation = function (message, cb) {
-            console.log("\n*inside bot.findConversation")
-            console.log(message)
             if (messageSource == 'directMessage' || messageSource == 'liveChat' ||
                 messageSource == 'privateChannel' || messageSource == 'channel') {
                 for (var t = 0; t < botkit.tasks.length; t++) {
-                    console.log("\nfindConversation FOR1")
                     for (var c = 0; c < botkit.tasks[t].convos.length; c++) {
-                        console.log("\nfindConversation FOR2")
-                        console.log(botkit.tasks[t].convos[c].source_message)
                         if (
                             botkit.tasks[t].convos[c].isActive() &&
                             botkit.tasks[t].convos[c].source_message.user == message.user &&
                             botkit.tasks[t].convos[c].source_message.channel == message.channel &&
                             botkit.excludedEvents.indexOf(message.type) == -1 // this type of message should not be included
                         ) {
-                            console.log("\nfindConversation IF")
-                            console.log(message)
                             cb(botkit.tasks[t].convos[c]);
                             //return;
                         }
@@ -173,7 +162,7 @@ function RocketChatBot(botkit, config) {
         next();
     });
 
-    // utils
+    // Utils functions
     async function getMessageSource(meta) {
         var messageSource;
         if (meta.roomType === 'd') {
