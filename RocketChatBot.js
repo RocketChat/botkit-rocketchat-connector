@@ -79,9 +79,6 @@ function RocketChatBot(botkit, config) {
 
             // TODO: needs to remove the response var and correct this step 
             var response = {
-                type: 'message',
-                user: '',
-                channel: 'socket',
                 text: message.msg
             }
 
@@ -130,13 +127,6 @@ function RocketChatBot(botkit, config) {
                     text: resp
                 };
             }
-
-            // TODO: This data is sent inside the src object, but the src have
-            // not the correct content hight now.
-            resp.type = 'message'
-            resp.user = ''
-            resp.channel = 'socket'
-
             bot.say(resp, cb);
         };
 
@@ -145,7 +135,7 @@ function RocketChatBot(botkit, config) {
         // TODO: When this function is uncommented the code just answer the
         // first message sent. Need to solve it.
         bot.findConversation = function (message, cb) {
-            console.log("\ninside bot.findConversation")
+            console.log("\n=>inside bot.findConversation")
             console.log(message)
             // for (var t = 0; t < botkit.tasks.length; t++) {
             //     console.log("\nfindConversation FOR1")
@@ -166,7 +156,6 @@ function RocketChatBot(botkit, config) {
             // }
             cb();
         };
-
         return bot;
     })
 
@@ -174,6 +163,9 @@ function RocketChatBot(botkit, config) {
     // and ensure that the key botkit fields are present -- user, channel, text, and type
     controller.middleware.normalize.use(function (bot, message, next) {
         console.log("\n*inside middleware.normalize.use")
+        //message.type = 'message'
+        message.user = userName;
+        message.channel = roomID;
         next();
     });
 
@@ -190,9 +182,6 @@ function RocketChatBot(botkit, config) {
 
     controller.middleware.categorize.use(function (bot, message, next) {
         console.log("\n*inside middleware.categorize.use");
-        if (message.type == 'message') {
-            message.type = 'message_received';
-        }
         next();
     });
 
