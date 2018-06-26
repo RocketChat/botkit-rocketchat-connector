@@ -6,12 +6,7 @@ function RocketChatBot(botkit, config) {
     // store bool values to know if the message is from LiveChat, Channel, 
     // Private Channel or DirectMessage. The value isChannel is true to bot
     // be enabled to send initial messages in chat.
-    var verifyMessageSource = {
-        isDirectMessage: false,
-        isLiveChat: false,
-        isChannel: true,
-        isPrivateChannel: false
-    }
+    var messageSource = 'channel';
     // store the user name that the bot needs to answer
     var userName;
     // store the room ID that the bot needs to answer. Initilize with the
@@ -23,6 +18,23 @@ function RocketChatBot(botkit, config) {
     // transform the string value from .env to bool.
     var SSL = (config.rocketchat_ssl === 'true')
     console.log(SSL)
+
+    // utils
+    async function getMessageSource(meta) {
+        var messageSource;
+        if(meta.roomType === 'd') {
+            messageSource = 'directMessage';
+        } else if(meta.roomType === 'l') {
+            messageSource = 'liveChat';
+        } else if(meta.roomType === 'c') {
+            messageSource = 'channel';
+        } else if(meta.roomType === 'p') {
+            messageSource = 'privateChannel';
+        } else {
+            messageSource = 'unknown';
+        }
+        return messageSource;
+    }
 
     controller.startBot = async () => {
         // insert to var bot bot.defineBot()
@@ -65,14 +77,7 @@ function RocketChatBot(botkit, config) {
             const isChannel = (meta.roomType === 'c')
             const isPrivateChannel = (meta.roomType === 'p')
 
-            // updates the global var with the message data. This could be an
-            // issue when more people send message at the same time
-            verifyMessageSource = {
-                isDirectMessage: isDirectMessage,
-                isLiveChat: isLiveChat,
-                isChannel: isChannel,
-                isPrivateChannel: isPrivateChannel
-            }
+            messageSource = await getMessageSource(meta);
 
             userName = message.u.username;
             roomID = message.rid;
@@ -102,13 +107,13 @@ function RocketChatBot(botkit, config) {
         bot.send = async function (message, cb) {
             console.log("\ninside bot.send")
             if (bot.connected) {
-                if (verifyMessageSource.isDirectMessage) {
+                if (messageSource === 'directMessage') {
                     await driver.sendDirectToUser(message.text, userName);
-                } else if (verifyMessageSource.isLiveChat) {
+                } else if (messageSource === 'liveChat') {
                     // TODO: implement answer to livechat
-                } else if (verifyMessageSource.isPrivateChannel) {
+                } else if (messageSource === 'privateChannel') {
                     await driver.sendToRoomId(message.text, roomID);
-                } else if (verifyMessageSource.isChannel) {
+                } else if (messageSource === 'channel') {
                     // TODO: need to configure the channel parameter to send to 
                     // more than one channel. Now is a simple string that came from
                     // .env file inside the Starterkit                
