@@ -11,6 +11,8 @@ function RocketChatBot(botkit, config) {
     // store the room ID that the bot needs to answer. Initilize with the
     // room defined in .env file
     var roomID = config.rocketchat_bot_room;
+    // TEST
+    var ts;
     // get the "brain" of Botkit
     var controller = Botkit.core(config || {});
     // transform the string value from .env to bool.
@@ -55,10 +57,12 @@ function RocketChatBot(botkit, config) {
 
                 userName = message.u.username;
                 roomID = message.rid;
+                ts = message.ts.$date
 
                 // store the text from RocketChat incomming messages
                 var incommingMessage = {
-                    text: message.msg
+                    text: message.msg,
+                    ts: ts
                 }
 
                 try {
@@ -81,6 +85,7 @@ function RocketChatBot(botkit, config) {
 
         bot.send = async function (message, cb) {
             console.log("\ninside bot.send")
+            console.log(message)
             if (bot.connected) {
                 if (messageSource === 'directMessage') {
                     await driver.sendDirectToUser(message.text, userName);
@@ -101,26 +106,46 @@ function RocketChatBot(botkit, config) {
             if (typeof (resp) == 'string') {
                 resp = {
                     text: resp
-                };
+                };                
             }
+            resp.user = userName;
+            resp.channel = roomID;
+            resp.ts = ts;
+            console.log(resp)
             bot.say(resp, cb);
         };
 
         // this function defines the mechanism by which botkit looks for ongoing conversations
         // probably leave as is!
         bot.findConversation = function (message, cb) {
+            console.log("\nInside findConversation")
+            console.log(message)
             if (messageSource == 'directMessage' || messageSource == 'liveChat' ||
                 messageSource == 'privateChannel' || messageSource == 'channel') {
                 for (var t = 0; t < botkit.tasks.length; t++) {
+                    console.log("\n-------------------------------------------------")
+                    console.log(botkit.tasks.length)
+                    console.log("\n-------------------------------------------------")
                     for (var c = 0; c < botkit.tasks[t].convos.length; c++) {
+                        console.log("\n-------------------------------------------------")
+                            console.log(botkit.tasks[t].convos[c].isActive())
+                            console.log(botkit.tasks[t].convos[c].source_message.user)
+                            console.log(message.user)
+                            console.log(botkit.tasks[t].convos[c].source_message.channel)
+                            console.log(message.channel)
+                            console.log(botkit.tasks[t].convos[c].source_message.ts)
+                            console.log(message.ts)
+                            console.log(botkit.excludedEvents.indexOf(message.type))
+                            console.log("\n-------------------------------------------------")
                         if (
                             botkit.tasks[t].convos[c].isActive() &&
                             botkit.tasks[t].convos[c].source_message.user == message.user &&
                             botkit.tasks[t].convos[c].source_message.channel == message.channel &&
+                            botkit.tasks[t].convos[c].source_message.ts == message.ts &&
                             botkit.excludedEvents.indexOf(message.type) == -1 // this type of message should not be included
-                        ) {
+                        ) {                            
                             cb(botkit.tasks[t].convos[c]);
-                            //return;
+                            return;
                         }
                     }
                 }
@@ -134,6 +159,7 @@ function RocketChatBot(botkit, config) {
     // and ensure that the key botkit fields are present -- user, channel, text, and type
     controller.middleware.normalize.use(function (bot, message, next) {
         console.log("\n*inside middleware.normalize.use");
+        console.log(message)
         message.user = userName;
         message.channel = roomID;
         next();
