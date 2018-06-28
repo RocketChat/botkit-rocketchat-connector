@@ -80,6 +80,7 @@ function RocketChatBot(botkit, config) {
             
             var newMessage = {
                 msg: message.text,
+                attachments: message.attachments || []
             }
             
             if (bot.connected) {
