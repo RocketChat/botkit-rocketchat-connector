@@ -77,15 +77,20 @@ function RocketChatBot(botkit, config) {
         bot.send = async function (message, cb) {
             console.log("\ninside bot.send")
             console.log(message)
+            
+            var newMessage = {
+                msg: message.text,
+            }
+            
             if (bot.connected) {
                 if (messageSource === 'directMessage') {
-                    await driver.sendDirectToUser(message.text, userName);
+                    await driver.sendDirectToUser(newMessage, userName);
                 } else if (messageSource === 'liveChat') {
                     // TODO: implement answer to livechat
                 } else if (messageSource === 'privateChannel') {
-                    await driver.sendToRoomId(message.text, roomID);
+                    await driver.sendToRoomId(newMessage, roomID);
                 } else if (messageSource === 'channel') {
-                    await driver.sendToRoomId(message.text, roomID);
+                    await driver.sendToRoomId(newMessage, roomID);
                 }
             }
         }
