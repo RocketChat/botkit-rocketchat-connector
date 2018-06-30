@@ -24,9 +24,7 @@ function RocketChatBot(botkit, config) {
         }
 
         if (bot.connected) {
-            // send a simple message in default ROOM
-            bot.send({ text: config.rocketchat_bot_user + " is listening!" })
-
+            
             var options = {
                 dm: config.rocketchat_bot_direct_messages,
                 livechat: config.rocketchat_bot_live_chat,
@@ -67,6 +65,27 @@ function RocketChatBot(botkit, config) {
             botkit: botkit,
             config: config || {},
             utterances: botkit.utterances,
+        }
+
+        bot.send = async function(message, cb) {
+            console.log("\ninside bot.send")
+            console.log(message)
+            if (bot.connected) {
+                if (message.type === 'directMessage') {
+                      await driver.sendDirectToUser(message.text, message.user);
+                } else if (message.type === 'liveChat') {
+                    // TODO: implement answer to livechat
+                } else if (message.type === 'privateChannel') {
+                      await driver.sendToRoomId(message.text, message.channel);
+                } else if (message.type === 'channel') {
+                      await driver.sendToRoomId(message.text, message.channel);
+                } else if (message.type === 'message') {
+                      await driver.sendToRoomId(message.text, message.channel);
+                }  
+                cb();
+            }
+            //  BOT is not connected
+            cb();
         }
 
         bot.reply = async function (src, resp, cb) {
