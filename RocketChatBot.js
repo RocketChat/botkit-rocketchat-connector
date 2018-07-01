@@ -34,7 +34,7 @@ function RocketChatBot(botkit, config) {
                 // store the text from RocketChat incomming messages
                 // this message is already normalized.
                 // but we might be missing out on fields we want 
-                var messageSource = getMessageSource(meta);
+                var messageSource = getMessageSource(meta, message);
                 var incommingMessage = {
                     text: message.msg,
                     user: message.u.username,
@@ -59,7 +59,7 @@ function RocketChatBot(botkit, config) {
             console.log(message)
             if (bot.connected) {
                 // handles every type of message
-                if (message.type === 'directMessage') {
+                if (message.type === 'direct_message') {
                     driver.sendDirectToUser(message.text, message.user)
                         .then(() => {
                             cb()
@@ -69,7 +69,7 @@ function RocketChatBot(botkit, config) {
                         })
                 } else if (message.type === 'liveChat') {
                     // TODO: implement answer to livechat
-                } else if (message.type === 'privateChannel') {
+                } else if (message.type === 'mention') {
                     driver.sendToRoomId(message.text, message.channel)
                         .then(() => {
                             cb()
@@ -77,7 +77,7 @@ function RocketChatBot(botkit, config) {
                         .catch((error) => {
                             console.log(error)
                         })
-                } else if (message.type === 'channel') {
+                } else if (message.type === 'mention') {
                     driver.sendToRoomId(message.text, message.channel)
                         .then(() => {
                             cb()
@@ -133,8 +133,8 @@ function RocketChatBot(botkit, config) {
     })
 
     // Verify the pipeline of the message.
-    //controller.middleware.receive.use(function (bot, message, next) { console.log('I RECEIVED', message); next(); });
-    //controller.middleware.send.use(function (bot, message, next) { console.log('I AM SENDING', message); next(); });
+    controller.middleware.receive.use(function (bot, message, next) { console.log('I RECEIVED', message); next(); });
+    controller.middleware.send.use(function (bot, message, next) { console.log('I AM SENDING', message); next(); });
 
     // provide one or more normalize middleware functions that take a raw incoming message
     // and ensure that the key botkit fields are present -- user, channel, text, and type
@@ -164,20 +164,34 @@ function RocketChatBot(botkit, config) {
     });
 
     // Utils functions
-    function getMessageSource(meta) {
-        var messageSource;
+    function getMessageSource(meta, message) {
+        var messageSource = 'commom_message';
         if (meta.roomType === 'd') {
-            messageSource = 'directMessage';
+            messageSource = 'direct_message';
         } else if (meta.roomType === 'l') {
             messageSource = 'liveChat';
         } else if (meta.roomType === 'c') {
-            messageSource = 'channel';
+            if (getMention(message)) {
+                messageSource = 'mention';
+            }
         } else if (meta.roomType === 'p') {
-            messageSource = 'privateChannel';
+            if (getMention(message)) {
+                messageSource = 'mention';
+            }
         } else {
             messageSource = 'message_received';
         }
         return messageSource;
+    }
+
+    function getMention(message) {
+        var bot_mention = false
+        for (var mention in message.mentions) {
+            if (message.mentions[mention].username == config.rocketchat_bot_user) {
+                bot_mention = true
+            }
+        }
+        return bot_mention
     }
 
     return controller;
