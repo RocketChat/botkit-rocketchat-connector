@@ -70,6 +70,12 @@ function RocketChatBot(botkit, config) {
         bot.send = async function(message, cb) {
             console.log("\ninside bot.send")
             console.log(message)
+            
+            var newMessage = {
+                msg: message.text,
+                attachments: message.attachments || []
+            }
+            
             if (bot.connected) {
                 if (message.type === 'directMessage') {
                       await driver.sendDirectToUser(message.text, message.user);
