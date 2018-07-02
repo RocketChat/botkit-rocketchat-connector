@@ -50,19 +50,23 @@ function RocketChatBot(botkit, config) {
 
         bot.send = async function (message, cb) {
             console.log(message)
+            
+            var newMessage = {
+                msg: message.text,
+                attachments: message.attachments || []
+            }
+            
             if (bot.connected) {
                 // handles every type of message
-                if (message.type === 'directMessage') {
-                    await driver.sendDirectToUser(message.text, message.user)
+                if (message.type === 'direct_message') {
+                      await driver.sendDirectToUser(newMessage, message.user);
                 } else if (message.type === 'liveChat') {
                     // TODO: implement answer to livechat
-                } else if (message.type === 'privateChannel') {
-                    await driver.sendToRoomId(message.text, message.channel)
-                } else if (message.type === 'channel') {
-                    await driver.sendToRoomId(message.text, message.channel)
+                } else if (message.type === 'mention') {
+                      await driver.sendToRoomId(newMessage, message.channel);
                 } else if (message.type === 'message') {
-                    await driver.sendToRoomId(message.text, message.channel)
-                }
+                      await driver.sendToRoomId(newMessage, message.channel);
+                }  
                 cb();
             }
             // BOT is not connected
@@ -103,7 +107,6 @@ function RocketChatBot(botkit, config) {
     })
 
     // Verify the pipeline of the message.
-ddd<<<<<<< HEAD
     controller.middleware.receive.use(function (bot, message, next) { console.log('I RECEIVED', message); next(); });
     controller.middleware.send.use(function (bot, message, next) { console.log('I AM SENDING', message); next(); });
 
