@@ -3,14 +3,6 @@ const { driver } = require('@rocket.chat/sdk');
 
 function RocketChatBot(botkit, config) {
     console.log("Inside RocketChatBot");
-    // store values to know if the message is from LiveChat, Channel, 
-    // Private Channel or DirectMessage
-    var messageSource = 'channel';
-    // store the user name that the bot needs to answer
-    var userName;
-    // store the room ID that the bot needs to answer. Initilize with the
-    // room defined in .env file
-    var roomID = config.rocketchat_bot_room;
     // get the "brain" of Botkit
     var controller = Botkit.core(config || {});
     // transform the string value from .env to bool.
@@ -32,9 +24,7 @@ function RocketChatBot(botkit, config) {
         }
 
         if (bot.connected) {
-            // send a simple message in default ROOM
-            bot.send({ text: config.rocketchat_bot_user + " is listening!" })
-
+            
             var options = {
                 dm: config.rocketchat_bot_direct_messages,
                 livechat: config.rocketchat_bot_live_chat,
@@ -45,14 +35,17 @@ function RocketChatBot(botkit, config) {
             // options
             driver.respondToMessages(async function (err, message, meta) {
                 console.log("\ninside respondToMessages");
-                messageSource = await getMessageSource(meta);
-
-                userName = message.u.username;
-                roomID = message.rid;
+                console.log(meta)
 
                 // store the text from RocketChat incomming messages
+                // this message is already normalized.
+                // but we might be missing out on fields we want 
+                var messageSource = await getMessageSource(meta);
                 var incommingMessage = {
                     text: message.msg,
+                    user: message.u.username,
+                    channel: message.rid,
+                    type: messageSource,
                     ts: message.ts.$date
                 }
 
@@ -74,7 +67,7 @@ function RocketChatBot(botkit, config) {
             utterances: botkit.utterances,
         }
 
-        bot.send = async function (message, cb) {
+        bot.send = async function(message, cb) {
             console.log("\ninside bot.send")
             console.log(message)
             
@@ -84,16 +77,21 @@ function RocketChatBot(botkit, config) {
             }
             
             if (bot.connected) {
-                if (messageSource === 'directMessage') {
-                    await driver.sendDirectToUser(newMessage, userName);
-                } else if (messageSource === 'liveChat') {
+                if (message.type === 'directMessage') {
+                      await driver.sendDirectToUser(message.text, message.user);
+                } else if (message.type === 'liveChat') {
                     // TODO: implement answer to livechat
-                } else if (messageSource === 'privateChannel') {
-                    await driver.sendToRoomId(newMessage, roomID);
-                } else if (messageSource === 'channel') {
-                    await driver.sendToRoomId(newMessage, roomID);
-                }
+                } else if (message.type === 'privateChannel') {
+                      await driver.sendToRoomId(message.text, message.channel);
+                } else if (message.type === 'channel') {
+                      await driver.sendToRoomId(message.text, message.channel);
+                } else if (message.type === 'message') {
+                      await driver.sendToRoomId(message.text, message.channel);
+                }  
+                cb();
             }
+            //  BOT is not connected
+            cb();
         }
 
         bot.reply = async function (src, resp, cb) {
@@ -103,8 +101,9 @@ function RocketChatBot(botkit, config) {
                     text: resp
                 };
             }
-            resp.user = userName;
-            resp.channel = roomID;
+            resp.type = src.type;
+            resp.user = src.user;
+            resp.channel = src.channel;
             bot.say(resp, cb);
         };
 
@@ -112,47 +111,45 @@ function RocketChatBot(botkit, config) {
         // probably leave as is!
         bot.findConversation = function (message, cb) {
             console.log("\nInside findConversation")
-            console.log(message)
-            if (messageSource == 'directMessage' || messageSource == 'liveChat' ||
-                messageSource == 'privateChannel' || messageSource == 'channel') {
                 for (var t = 0; t < botkit.tasks.length; t++) {
                     console.log(botkit.tasks.length)
                     for (var c = 0; c < botkit.tasks[t].convos.length; c++) {
                         console.log(botkit.tasks[t].convos[c].source_message)
-                        console.log(message.user)
-                        console.log(message.channel)
-                        console.log(message.ts)
                         // the ts just is added to source_message.original_message.ts
                         if (
                             botkit.tasks[t].convos[c].isActive() &&
                             botkit.tasks[t].convos[c].source_message.user == message.user &&
                             botkit.tasks[t].convos[c].source_message.channel == message.channel &&
-                            botkit.tasks[t].convos[c].source_message.original_message.ts == message.ts &&
                             botkit.excludedEvents.indexOf(message.type) == -1 // this type of message should not be included
                         ) {
                             cb(botkit.tasks[t].convos[c]);
                             return;
                         }
                     }
-                }
             }
             cb();
         };
         return bot;
     })
 
+    controller.middleware.receive.use(function(bot, message, next) { console.log('I RECEIVED', message); next(); });
+
+    controller.middleware.send.use(function(bot, message, next) { console.log('I AM SENDING', message); next(); });
+
     // provide one or more normalize middleware functions that take a raw incoming message
     // and ensure that the key botkit fields are present -- user, channel, text, and type
     controller.middleware.normalize.use(function (bot, message, next) {
-        console.log("\n*inside middleware.normalize.use");
-        message.user = userName;
-        message.channel = roomID;
-        // gets the timestamp from incommingMessage()
-        message.ts = message.raw_message.ts
-        console.log(message)
+        next();
+    });
+     controller.middleware.categorize.use(function (bot, message, next) {
+        console.log("\n*inside middleware.categorize.use");
+        if (message.type == 'message') {
+            message.type = 'message_received';
+        }
         next();
     });
 
+  
     // provide one or more ways to format outgoing messages from botkit messages into 
     // the necessary format required by the platform API
     // at a minimum, copy all fields from `message` to `platform_message`
@@ -164,14 +161,6 @@ function RocketChatBot(botkit, config) {
         }
         if (!platform_message.type) {
             platform_message.type = 'message';
-        }
-        next();
-    });
-
-    controller.middleware.categorize.use(function (bot, message, next) {
-        console.log("\n*inside middleware.categorize.use");
-        if (message.type == 'message') {
-            message.type = 'message_received';
         }
         next();
     });
@@ -188,7 +177,7 @@ function RocketChatBot(botkit, config) {
         } else if (meta.roomType === 'p') {
             messageSource = 'privateChannel';
         } else {
-            messageSource = 'unknown';
+            messageSource = 'message_received';
         }
         return messageSource;
     }
