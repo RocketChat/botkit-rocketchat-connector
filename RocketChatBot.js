@@ -33,16 +33,9 @@ function RocketChatBot(botkit, config) {
             driver.respondToMessages(function (err, message, meta) {
                 // store the text from RocketChat incomming messages
                 // this message is already normalized.
-                // but we might be missing out on fields we want 
-                var messageSource = getMessageSource(meta, message);
-                var incommingMessage = {
-                    text: message.msg,
-                    user: message.u.username,
-                    channel: message.rid,
-                    type: messageSource,
-                    ts: message.ts.$date
-                }
-                controller.ingest(bot, incommingMessage)
+                // but we might be missing out on fields we want                 
+                message.type = getMessageSource(meta, message);
+                controller.ingest(bot, message)
             }, options);
         }
     }
@@ -139,6 +132,10 @@ function RocketChatBot(botkit, config) {
     // provide one or more normalize middleware functions that take a raw incoming message
     // and ensure that the key botkit fields are present -- user, channel, text, and type
     controller.middleware.normalize.use(function (bot, message, next) {
+        message.text = handleMention(message)
+        message.user = message.u.username
+        message.channel = message.rid
+        message.ts = message.ts.$date
         next();
     });
 
@@ -165,23 +162,30 @@ function RocketChatBot(botkit, config) {
 
     // Utils functions
     function getMessageSource(meta, message) {
-        var messageSource = 'commom_message';
+        // message_received type are not at the events list, if added the bot
+        // will answer all messages
+        var messageSource = 'message_received';
         if (meta.roomType === 'd') {
             messageSource = 'direct_message';
         } else if (meta.roomType === 'l') {
             messageSource = 'liveChat';
-        } else if (meta.roomType === 'c') {
-            if (getMention(message)) {
-                messageSource = 'mention';
-            }
-        } else if (meta.roomType === 'p') {
-            if (getMention(message)) {
-                messageSource = 'mention';
-            }
-        } else {
-            messageSource = 'message_received';
+        } else if (meta.roomType === 'c' && getMention(message)) {
+            messageSource = 'mention';
+        } else if (meta.roomType === 'p' && getMention(message)) {
+            messageSource = 'mention';
         }
         return messageSource;
+    }
+
+    function handleMention(message) {
+        var text = ''
+        if (getMention(message)) {
+            // regex to remove words that begins with '@'
+            text = message.msg.replace(/(^|\W)@(\w+)/g, '').replace(' ', '')
+        } else {
+            text = message.msg
+        }
+        return text
     }
 
     function getMention(message) {
