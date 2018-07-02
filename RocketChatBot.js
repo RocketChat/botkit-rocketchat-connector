@@ -78,15 +78,15 @@ function RocketChatBot(botkit, config) {
             
             if (bot.connected) {
                 if (message.type === 'directMessage') {
-                      await driver.sendDirectToUser(message.text, message.user);
+                      await driver.sendDirectToUser(newMessage, message.user);
                 } else if (message.type === 'liveChat') {
                     // TODO: implement answer to livechat
                 } else if (message.type === 'privateChannel') {
-                      await driver.sendToRoomId(message.text, message.channel);
+                      await driver.sendToRoomId(newMessage, message.channel);
                 } else if (message.type === 'channel') {
-                      await driver.sendToRoomId(message.text, message.channel);
+                      await driver.sendToRoomId(newMessage, message.channel);
                 } else if (message.type === 'message') {
-                      await driver.sendToRoomId(message.text, message.channel);
+                      await driver.sendToRoomId(newMessage, message.channel);
                 }  
                 cb();
             }
