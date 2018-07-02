@@ -60,8 +60,8 @@ function RocketChatBot(botkit, config) {
                 // handles every type of message
                 if (message.type === 'direct_message') {
                       await driver.sendDirectToUser(newMessage, message.user);
-                } else if (message.type === 'liveChat') {
-                    // TODO: implement answer to livechat
+                } else if (message.type === 'live_chat') {
+                    await driver.sendToRoomId(newMessage, message.channel);
                 } else if (message.type === 'mention') {
                       await driver.sendToRoomId(newMessage, message.channel);
                 } else if (message.type === 'message') {
@@ -149,7 +149,7 @@ function RocketChatBot(botkit, config) {
         if (meta.roomType === 'd') {
             messageSource = 'direct_message';
         } else if (meta.roomType === 'l') {
-            messageSource = 'liveChat';
+            messageSource = 'live_chat';
         } else if (meta.roomType === 'c' && getMention(message)) {
             messageSource = 'mention';
         } else if (meta.roomType === 'p' && getMention(message)) {
