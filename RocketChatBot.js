@@ -49,24 +49,22 @@ function RocketChatBot(botkit, config) {
         }
 
         bot.send = async function (message, cb) {
-            console.log(message)
-            
             var newMessage = {
                 msg: message.text,
                 attachments: message.attachments || []
             }
-            
+
             if (bot.connected) {
                 // handles every type of message
                 if (message.type === 'direct_message') {
-                      await driver.sendDirectToUser(newMessage, message.user);
+                    await driver.sendDirectToUser(newMessage, message.user);
                 } else if (message.type === 'live_chat') {
                     await driver.sendToRoomId(newMessage, message.channel);
                 } else if (message.type === 'mention') {
-                      await driver.sendToRoomId(newMessage, message.channel);
+                    await driver.sendToRoomId(newMessage, message.channel);
                 } else if (message.type === 'message') {
-                      await driver.sendToRoomId(newMessage, message.channel);
-                }  
+                    await driver.sendToRoomId(newMessage, message.channel);
+                }
                 cb();
             }
             // BOT is not connected
@@ -106,7 +104,7 @@ function RocketChatBot(botkit, config) {
         return bot;
     })
 
-    // Verify the pipeline of the message.
+    // Verify the pipeline of the message, using for debug
     controller.middleware.receive.use(function (bot, message, next) { console.log('I RECEIVED', message); next(); });
     controller.middleware.send.use(function (bot, message, next) { console.log('I AM SENDING', message); next(); });
 
@@ -121,9 +119,6 @@ function RocketChatBot(botkit, config) {
     });
 
     controller.middleware.categorize.use(function (bot, message, next) {
-        if (message.type == 'message') {
-            message.type = 'message_received';
-        }
         next();
     });
 
@@ -150,9 +145,7 @@ function RocketChatBot(botkit, config) {
             messageSource = 'direct_message';
         } else if (meta.roomType === 'l') {
             messageSource = 'live_chat';
-        } else if (meta.roomType === 'c' && getMention(message)) {
-            messageSource = 'mention';
-        } else if (meta.roomType === 'p' && getMention(message)) {
+        } else if ((meta.roomType === 'c' || meta.roomType === 'p') && getMention(message)) {
             messageSource = 'mention';
         }
         return messageSource;
