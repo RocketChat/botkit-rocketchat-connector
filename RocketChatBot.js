@@ -48,45 +48,22 @@ function RocketChatBot(botkit, config) {
             utterances: botkit.utterances,
         }
 
-        bot.send = function (message, cb) {
+        bot.send = async function (message, cb) {
             console.log(message)
             if (bot.connected) {
                 // handles every type of message
-                if (message.type === 'direct_message') {
-                    driver.sendDirectToUser(message.text, message.user)
-                        .then(() => {
-                            cb()
-                        })
-                        .catch((error) => {
-                            console.log(error)
-                        })
+                if (message.type === 'directMessage') {
+                    await driver.sendDirectToUser(message.text, message.user)
                 } else if (message.type === 'liveChat') {
                     // TODO: implement answer to livechat
-                } else if (message.type === 'mention') {
-                    driver.sendToRoomId(message.text, message.channel)
-                        .then(() => {
-                            cb()
-                        })
-                        .catch((error) => {
-                            console.log(error)
-                        })
-                } else if (message.type === 'mention') {
-                    driver.sendToRoomId(message.text, message.channel)
-                        .then(() => {
-                            cb()
-                        })
-                        .catch((error) => {
-                            console.log(error)
-                        })
+                } else if (message.type === 'privateChannel') {
+                    await driver.sendToRoomId(message.text, message.channel)
+                } else if (message.type === 'channel') {
+                    await driver.sendToRoomId(message.text, message.channel)
                 } else if (message.type === 'message') {
-                    driver.sendToRoomId(message.text, message.channel)
-                        .then(() => {
-                            cb()
-                        })
-                        .catch((error) => {
-                            console.log(error)
-                        })
+                    await driver.sendToRoomId(message.text, message.channel)
                 }
+                cb();
             }
             // BOT is not connected
             cb();
@@ -126,6 +103,7 @@ function RocketChatBot(botkit, config) {
     })
 
     // Verify the pipeline of the message.
+ddd<<<<<<< HEAD
     controller.middleware.receive.use(function (bot, message, next) { console.log('I RECEIVED', message); next(); });
     controller.middleware.send.use(function (bot, message, next) { console.log('I AM SENDING', message); next(); });
 
