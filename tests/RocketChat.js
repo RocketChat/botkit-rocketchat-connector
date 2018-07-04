@@ -1,6 +1,8 @@
-var should = require('should');
-var Botkit = require('botkit');
-var rocketchatbot = require('../RocketChatBot.js');
+const should = require('should');
+const assert = require('assert');
+const Botkit = require('botkit');
+const rocketchatbot = require('../RocketChatBot.js');
+const utils= require('../utils.js');
 
 var bot_options = {
     debug: false,
@@ -41,10 +43,34 @@ describe('Start', function() {
 
 
 describe('Utils functions', function() {
-    var controller = rocketchatbot({}, bot_options);
-    it('should return true about channel mention', async function() {
-    console.log(controller)
-       //var returnIsMentionRoom = await rocketchatbot.isMentionRoom('channel1');
-       //assert.equal(true, returnIsMentionRoom);
+    var botName = 'botName';
+    var correctMessage = {
+      mentions: [{username: botName}],
+      msg: '@botName this is a simple message.',
+    };
+    var correctMessageWithoutMention = {
+      mentions: [],
+      msg: 'this is a simple message.',
+    };
+
+    it('should return true when the bot is metioned in the message', function() {
+      var mention = utils.isMention(correctMessage, botName);
+      assert.equal(true, mention)
+    });
+
+    it('should return false the bot is not mentioned', function() {
+      var mention = utils.isMention(correctMessage, 'userMention');
+      assert.equal(false, mention)
+    });
+
+    it('should the message without mentions', function() {
+      var mention = utils.handleMention(correctMessage, botName);
+      assert.equal('this is a simple message.', mention)
+    });
+
+    it('should the message without changes', function() {
+      var mention = utils.handleMention(correctMessage, botName);
+      assert.equal('this is a simple message.', mention)
     });
 });
+
