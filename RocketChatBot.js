@@ -1,5 +1,6 @@
 var Botkit = require('botkit');
 const { driver } = require('@rocket.chat/sdk');
+const utils = require('./utils');
 
 function RocketChatBot(botkit, config) {
     var controller = Botkit.core(config || {});
@@ -34,7 +35,7 @@ function RocketChatBot(botkit, config) {
                 // store the text from RocketChat incomming messages
                 // this message is already normalized.
                 // but we might be missing out on fields we want                 
-                message.type = await getRoomType(meta, message);
+                message.type = await utils.getRoomType(meta, message, config.rocketchat_bot_mention_rooms, config.rocketchat_bot_user);
                 controller.ingest(bot, message)
             }, options);
         }
@@ -113,7 +114,7 @@ function RocketChatBot(botkit, config) {
     // provide one or more normalize middleware functions that take a raw incoming message
     // and ensure that the key botkit fields are present -- user, channel, text, and type
     controller.middleware.normalize.use(function (bot, message, next) {
-        message.text = handleMention(message)
+        message.text = utils.handleMention(message, config.rocketchat_bot_user)
         message.user = message.u.username
         message.channel = message.rid
         message.ts = message.ts.$date
@@ -137,71 +138,6 @@ function RocketChatBot(botkit, config) {
         }
         next();
     });
-
-    // Utils functions
-    async function getRoomType(meta, message) {
-        // message_received type are not at the events list, if added the bot
-        // will answer all messages
-        var messageType = 'message_received';
-        var mentionRoom = await isMentionRoom(message.rid)
-
-        if (meta.roomType === 'd') {
-            messageType = 'direct_message';
-        } else if (meta.roomType === 'l') {
-            messageType = 'live_chat';
-        } else if ((meta.roomType === 'c' || meta.roomType === 'p') && !mentionRoom) {
-            console.log('TEST1')
-            messageType = 'channel';
-        } else if ((meta.roomType === 'c' || meta.roomType === 'p') && isMention(message) && mentionRoom) {
-            console.log('TEST1')
-            messageType = 'mention';
-        } 
-        return messageType;
-    }
-
-    function handleMention(message) {
-        var text = ''
-        if (isMention(message)) {
-            // regex to remove words that begins with '@'
-            text = message.msg.replace(/(^|\W)@(\w+)/g, '').replace(' ', '')
-        } else {
-            text = message.msg
-        }
-        return text
-    }
-
-    function isMention(message) {
-        var bot_mention = false
-        for (var mention in message.mentions) {
-            if (message.mentions[mention].username == config.rocketchat_bot_user) {
-                bot_mention = true
-            }
-        }
-        return bot_mention
-    }
-
-    async function isMentionRoom(channel_id) {
-        var mentionRoom = false;
-        var channelList = config.rocketchat_bot_mention_rooms;
-        var channelName = await driver.getRoomName(channel_id)
-        console.log('channelName')
-        console.log(channelName)
-
-        channelList = channelList.replace(/[^\w\,]/gi, '')
-        if (channelList.match(',')) {
-            channelList = (channelList.split(','))
-            for (channel in channelList) {
-                if (channelList[channel] == channelName) {
-                    mentionRoom = true
-                }
-            }
-        } else {
-            if (channelList == channelName) {
-                mentionRoom = true
-            }
-        }
-        return mentionRoom
-    }
 
     return controller;
 }
