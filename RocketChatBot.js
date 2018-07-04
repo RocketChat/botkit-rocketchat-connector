@@ -30,11 +30,11 @@ function RocketChatBot(botkit, config) {
 
             // trigger when every message is sent from any source enabled from
             // options
-            driver.respondToMessages(function (err, message, meta) {
+            driver.respondToMessages(async function (err, message, meta) {
                 // store the text from RocketChat incomming messages
                 // this message is already normalized.
                 // but we might be missing out on fields we want                 
-                message.type = getMessageSource(meta, message);
+                message.type = await getRoomType(meta, message);
                 controller.ingest(bot, message)
             }, options);
         }
@@ -61,6 +61,8 @@ function RocketChatBot(botkit, config) {
                 } else if (message.type === 'live_chat') {
                     await driver.sendToRoomId(newMessage, message.channel);
                 } else if (message.type === 'mention') {
+                    await driver.sendToRoomId(newMessage, message.channel);
+                } else if (message.type === 'channel') {
                     await driver.sendToRoomId(newMessage, message.channel);
                 } else if (message.type === 'message') {
                     await driver.sendToRoomId(newMessage, message.channel);
@@ -137,23 +139,29 @@ function RocketChatBot(botkit, config) {
     });
 
     // Utils functions
-    function getMessageSource(meta, message) {
+    async function getRoomType(meta, message) {
         // message_received type are not at the events list, if added the bot
         // will answer all messages
-        var messageSource = 'message_received';
+        var messageType = 'message_received';
+        var mentionRoom = await isMentionRoom(message.rid)
+
         if (meta.roomType === 'd') {
-            messageSource = 'direct_message';
+            messageType = 'direct_message';
         } else if (meta.roomType === 'l') {
-            messageSource = 'live_chat';
-        } else if ((meta.roomType === 'c' || meta.roomType === 'p') && getMention(message)) {
-            messageSource = 'mention';
-        }
-        return messageSource;
+            messageType = 'live_chat';
+        } else if ((meta.roomType === 'c' || meta.roomType === 'p') && !mentionRoom) {
+            console.log('TEST1')
+            messageType = 'channel';
+        } else if ((meta.roomType === 'c' || meta.roomType === 'p') && isMention(message) && mentionRoom) {
+            console.log('TEST1')
+            messageType = 'mention';
+        } 
+        return messageType;
     }
 
     function handleMention(message) {
         var text = ''
-        if (getMention(message)) {
+        if (isMention(message)) {
             // regex to remove words that begins with '@'
             text = message.msg.replace(/(^|\W)@(\w+)/g, '').replace(' ', '')
         } else {
@@ -162,7 +170,7 @@ function RocketChatBot(botkit, config) {
         return text
     }
 
-    function getMention(message) {
+    function isMention(message) {
         var bot_mention = false
         for (var mention in message.mentions) {
             if (message.mentions[mention].username == config.rocketchat_bot_user) {
@@ -170,6 +178,29 @@ function RocketChatBot(botkit, config) {
             }
         }
         return bot_mention
+    }
+
+    async function isMentionRoom(channel_id) {
+        var mentionRoom = false;
+        var channelList = config.rocketchat_bot_mention_rooms;
+        var channelName = await driver.getRoomName(channel_id)
+        console.log('channelName')
+        console.log(channelName)
+
+        channelList = channelList.replace(/[^\w\,]/gi, '')
+        if (channelList.match(',')) {
+            channelList = (channelList.split(','))
+            for (channel in channelList) {
+                if (channelList[channel] == channelName) {
+                    mentionRoom = true
+                }
+            }
+        } else {
+            if (channelList == channelName) {
+                mentionRoom = true
+            }
+        }
+        return mentionRoom
     }
 
     return controller;
