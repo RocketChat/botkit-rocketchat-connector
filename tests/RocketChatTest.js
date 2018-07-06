@@ -52,10 +52,12 @@ describe('Utils functions', function () {
     mentions: [],
     msg: 'this is a simple message.',
   };
-  const correctMetaChannel = {roomType: 'c'}
-  const correctMetaDirectMessage = {roomType: 'd'}
-  const correctMetaLiveChat = {roomType: 'l'}
-  const correctChannelList = 'channel'
+  const correctRoomId = 'GENERAL';
+  const correctMetaChannel = {roomType: 'c'};
+  const correctMetaDirectMessage = {roomType: 'd'};
+  const correctMetaLiveChat = {roomType: 'l'};
+  const correctChannelList = 'channel';
+  const correctChannelListWithMoreChannels = 'channel1, channel2, GENERAL';
 
 
   it('should return true when the bot is metioned in the message', function () {
@@ -78,7 +80,7 @@ describe('Utils functions', function () {
     assert.equal('this is a simple message.', result)
   });
 
-  it('should return false if have not parameters', async function () {
+  it('should return false with no parameters', async function () {
     var result = await utils.isMentionRoom();
     assert.equal(false, result)
   });
