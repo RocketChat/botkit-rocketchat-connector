@@ -20,7 +20,7 @@ async function getRoomType(meta, message, channelList, botUserName) {
 }
 
 function handleMention(message, botUserName) {
-    var text = ''
+    var text = ''    
     if (isMention(message, botUserName)) {
         // regex to remove words that begins with '@'
         text = message.msg.replace(/(^|\W)@(\w+)/g, '').replace(' ', '')
@@ -32,11 +32,16 @@ function handleMention(message, botUserName) {
 
 function isMention(message, botUserName) {
     var bot_mention = false
-    for (var mention in message.mentions) {
-        if (message.mentions[mention].username == botUserName) {
-            bot_mention = true
+    if(message != undefined && botUserName != undefined) {
+        for (var mention in message.mentions) {
+            if (message.mentions[mention].username == botUserName) {
+                bot_mention = true
+            }
         }
+    } else {
+        console.log('message or botUserName undefined.')
     }
+
     return bot_mention
 }
 
@@ -44,18 +49,22 @@ async function isMentionRoom(channel_id, channelList) {
     var mentionRoom = false;
     var channelName = await driver.getRoomName(channel_id)
 
-    channelList = channelList.replace(/[^\w\,]/gi, '')
-    if (channelList.match(',')) {
-        channelList = (channelList.split(','))
-        for (channel in channelList) {
-            if (channelList[channel] == channelName) {
+    if (channelList != undefined && channel_id != undefined) {
+        channelList = channelList.replace(/[^\w\,]/gi, '')
+        if (channelList.match(',')) {
+            channelList = (channelList.split(','))
+            for (channel in channelList) {
+                if (channelList[channel] == channelName) {
+                    mentionRoom = true
+                }
+            }
+        } else {
+            if (channelList == channelName) {
                 mentionRoom = true
             }
         }
     } else {
-        if (channelList == channelName) {
-            mentionRoom = true
-        }
+        console.log('channelList or channel_id undefined.')
     }
     return mentionRoom
 }
