@@ -38,18 +38,15 @@ function isMention(message, botUserName) {
                 bot_mention = true
             }
         }
-    } else {
-        console.log('message or botUserName undefined.')
     }
-
     return bot_mention
 }
 
 async function isMentionRoom(channel_id, channelList) {
     var mentionRoom = false;
-    var channelName = await driver.getRoomName(channel_id)
 
     if (channelList != undefined && channel_id != undefined) {
+    var channelName = await driver.getRoomName(channel_id)
         channelList = channelList.replace(/[^\w\,]/gi, '')
         if (channelList.match(',')) {
             channelList = (channelList.split(','))
@@ -63,9 +60,8 @@ async function isMentionRoom(channel_id, channelList) {
                 mentionRoom = true
             }
         }
-    } else {
-        console.log('channelList or channel_id undefined.')
     }
+
     return mentionRoom
 }
 
