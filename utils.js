@@ -48,7 +48,9 @@ async function isMentionRoom (channelId, channelList) {
 
   if (channelList !== undefined && channelId !== undefined) {
     var channelName = await driver.getRoomName(channelId)
-    channelName = channelName.toLowerCase()
+    if(channelName !== undefined) {
+      channelName = channelName.toLowerCase()
+    }
     channelList = channelList.replace(/[^\w\,._]/gi, '').toLowerCase()
     if (channelList.match(',')) {
       channelList = (channelList.split(','))
