@@ -62,8 +62,19 @@ async function isMentionRoom (channelId, channelList) {
       }
     }
   }
-
   return mentionRoom
 }
 
-module.exports = { getRoomType, handleMention, isMention, isMentionRoom }
+async function addToRooms (channelList) {
+  var rooms = (channelList.split(','))
+  for (var i in rooms) {
+    rooms[i] = rooms[i].replace(/^\s+|\s+$/g, '')
+  }
+  try{
+    await driver.joinRooms(rooms)
+  } catch(error) {
+    console.log(error)
+  }
+}
+
+module.exports = { getRoomType, handleMention, isMention, isMentionRoom, addToRooms }

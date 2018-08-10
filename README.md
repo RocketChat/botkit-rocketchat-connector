@@ -40,4 +40,3 @@ The RocketChat connector with Botkit it's mainly inside the `RocketChatBot.js` f
 7. `bot.reply()` is used to reply messages.
 
 8. To make all things work, it's needed pass throught some `middlewares`, this is a pipeline from `CoreBot.js` to configure the message and others things.
-

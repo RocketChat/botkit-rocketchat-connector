@@ -14,6 +14,7 @@ function RocketChatBot (botkit, config) {
       // make the connection with RocketChat
       await driver.connect({ host: config.rocketchat_host, useSsl: SSL })
       await driver.login({ username: config.rocketchat_bot_user, password: config.rocketchat_bot_pass })
+      await utils.addToRooms(config.rocketchat_bot_rooms)
       await driver.subscribeToMessages()
       bot.connected = true
     } catch (error) {
