@@ -107,6 +107,16 @@ function RocketChatBot (botkit, config) {
     return bot
   })
 
+  // Add callMethod to controller object
+  function callMethod(method, ...args) {
+    return driver.callMethod(method, ...args)
+  }
+  controller.callMethod = callMethod
+
+  //controller.prototype.callMethod = callMethod
+  // Esse modulo eh usado em outro.. serve como uma lib. aqui ja tem o obj "controller" porem eu quero
+  // add uma funcao (callMethod) nesse obj (controller) pra usar ele no app (controller.callMethod)
+
   // Verify the pipeline of the message, using for debug
   controller.middleware.receive.use(function (bot, message, next) { console.log('I RECEIVED', message); next() })
   controller.middleware.send.use(function (bot, message, next) { console.log('I AM SENDING', message); next() })
