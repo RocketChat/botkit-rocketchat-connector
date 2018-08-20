@@ -36,7 +36,13 @@ function RocketChatBot (botkit, config) {
         // this message is already normalized.
         // but we might be missing out on fields we want
         message.type = await utils.getRoomType(meta, message, config.rocketchat_bot_mention_rooms, config.rocketchat_bot_user)
-        controller.ingest(bot, message)
+        // handle system messages
+        message.system = false
+        if (message.t !== undefined) {
+          message.system = message.t
+        } else {
+          controller.ingest(bot, message)
+        }
       }, options)
     }
   }
