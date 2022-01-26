@@ -1,7 +1,7 @@
-const { driver } = require('@rocket.chat/sdk')
+const { driver, api } = require('@rocket.chat/sdk')
 
 // Utils functions
-async function getRoomType (meta, message, channelList, botUserName) {
+async function getRoomType(meta, message, channelList, botUserName) {
   // message_received type are not at the events list, if added the bot
   // will answer all messages
   var messageType = 'message_received'
@@ -19,7 +19,7 @@ async function getRoomType (meta, message, channelList, botUserName) {
   return messageType
 }
 
-function handleMention (message, botUserName) {
+function handleMention(message, botUserName) {
   var text = ''
   if (isMention(message, botUserName)) {
     // regex to remove words that begins with '@'
@@ -30,7 +30,7 @@ function handleMention (message, botUserName) {
   return text
 }
 
-function isMention (message, botUserName) {
+function isMention(message, botUserName) {
   var botMention = false
   if (message !== undefined && botUserName !== undefined) {
     for (var mention in message.mentions) {
@@ -42,13 +42,13 @@ function isMention (message, botUserName) {
   return botMention
 }
 
-async function isMentionRoom (channelId, channelList) {
+async function isMentionRoom(channelId, channelList) {
   var mentionRoom = false
   var channel
 
   if (channelList !== undefined && channelId !== undefined) {
     var channelName = await driver.getRoomName(channelId)
-    if(channelName !== undefined) {
+    if (channelName !== undefined) {
       channelName = channelName.toLowerCase()
     }
     channelList = channelList.replace(/[^\w\,._]/gi, '').toLowerCase()
@@ -70,16 +70,41 @@ async function isMentionRoom (channelId, channelList) {
   return mentionRoom
 }
 
-async function addToRooms (channelList) {
+async function addToRooms(channelList) {
   var rooms = (channelList.split(','))
   for (var i in rooms) {
     rooms[i] = rooms[i].replace(/^\s+|\s+$/g, '')
   }
-  try{
+  try {
     await driver.joinRooms(rooms)
-  } catch(error) {
+  } catch (error) {
     console.log(error)
   }
 }
 
-module.exports = { getRoomType, handleMention, isMention, isMentionRoom, addToRooms }
+async function forwardLiveChat(roomId, userId) {
+  var data = {
+    "roomId": roomId,
+    "userId": userId,
+  };
+  try {
+    await api.post("livechat/room.forward", data, true);
+  } catch (error) {
+    //skip it if there is no error
+    if (err) {
+      console.log(err);
+    }
+  }
+}
+
+async function getUserInfoByName(username) {
+  const alls = await api.users.all();
+  for (const user of alls) {
+    if (user.name === username) {
+      return user
+    }
+  }
+  return null
+}
+
+module.exports = { getRoomType, handleMention, isMention, isMentionRoom, addToRooms, forwardLiveChat, getUserInfoByName }

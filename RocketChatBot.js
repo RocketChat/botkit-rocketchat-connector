@@ -1,8 +1,8 @@
 var Botkit = require('botkit')
-const { driver } = require('@rocket.chat/sdk')
+const { driver, api } = require('@rocket.chat/sdk')
 const utils = require('./utils')
 
-function RocketChatBot (botkit, config) {
+function RocketChatBot(botkit, config) {
   var controller = Botkit.core(config || {})
   // transform the string value from .env to bool.
   var SSL = (config.rocketchat_ssl === 'true')
@@ -16,6 +16,9 @@ function RocketChatBot (botkit, config) {
       await driver.login({ username: config.rocketchat_bot_user, password: config.rocketchat_bot_pass })
       await utils.addToRooms(config.rocketchat_bot_rooms)
       await driver.subscribeToMessages()
+      //directly overrride url
+      api.url = config.rocketchat_host + '/api/v1/'
+      const loginAPI = await api.login({ username: config.rocketchat_bot_user, password: config.rocketchat_bot_pass });
       bot.connected = true
     } catch (error) {
       bot.connected = false
@@ -52,7 +55,8 @@ function RocketChatBot (botkit, config) {
       type: 'rocketchat',
       botkit: botkit,
       config: config || {},
-      utterances: botkit.utterances
+      utterances: botkit.utterances,
+      rocketChatUtils: utils
     }
 
     bot.send = async function (message, cb) {
@@ -99,9 +103,9 @@ function RocketChatBot (botkit, config) {
         for (var c = 0; c < botkit.tasks[t].convos.length; c++) {
           if (
             botkit.tasks[t].convos[c].isActive() &&
-                        botkit.tasks[t].convos[c].source_message.user === message.user &&
-                        botkit.tasks[t].convos[c].source_message.channel === message.channel &&
-                        botkit.excludedEvents.indexOf(message.type) === -1 // this type of message should not be included
+            botkit.tasks[t].convos[c].source_message.user === message.user &&
+            botkit.tasks[t].convos[c].source_message.channel === message.channel &&
+            botkit.excludedEvents.indexOf(message.type) === -1 // this type of message should not be included
           ) {
             cb(botkit.tasks[t].convos[c])
             return
