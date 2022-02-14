@@ -17,14 +17,6 @@ The code have some `console.log()` and **// TO DO: [...]** comments, this annota
 
 Do not forget to see the [botkit-starter-rocketchat](https://github.com/RocketChat/botkit-starter-rocketchat) there the connector is used and the needed configuration is made to make your botkit run in RocketChat.
 
-## Organization
-
-The RocketChat connector with Botkit it's mainly inside the `RocketChatBot.js` file. The image bellow exemply the configuration inside it:
-
-![botkit-rocketchat-connector](https://github.com/RocketChat/botkit-rocketchat-connector/wiki/images/botkit-rocketchat-connector.png)
-
-* `External application` it's the application that's make use of the connector to make the needed configuration, like the [botkit-starter-rocketchat](https://github.com/RocketChat/botkit-starter-rocketchat).
-
 ## Sample of creating a bot with Rocket.Chat adpter
 
 ```
