@@ -25,18 +25,35 @@ The RocketChat connector with Botkit it's mainly inside the `RocketChatBot.js` f
 
 * `External application` it's the application that's make use of the connector to make the needed configuration, like the [botkit-starter-rocketchat](https://github.com/RocketChat/botkit-starter-rocketchat).
 
-1. In yellow are the imports, Botkit `CoreBot.js`
+## Sample of creating a bot with Rocket.Chat adpter
 
-2. Rocketchat `sdk driver`.
+```
+const { RocketChatAdapter } = require('botkit-rocketchat-connector')
+const { Botkit } = require('botkit');
 
-3. The function `controller.startBot()` make the connection with RocketChat using SDK and send a simple message to the channel.
+// the environment variables from RocketChat is passed in bot_options
+var botOptions = {
+  debug: true,
+  rocketchat_host: "127.0.0.1:3000",
+  rocketchat_bot_user: "bot_name",
+  rocketchat_bot_pass: "bot_pass",
+  rocketchat_ssl: false,
+  rocketchat_bot_rooms: ["general"],
+  rocketchat_bot_mention_rooms: [],
+  rocketchat_bot_direct_messages: true,
+  rocketchat_bot_live_chat: true,
+  rocketchat_bot_edited: true
+}
 
-4. After the connection is made, the function `controller.spawn(config)` call `controller.defineBot()` using some configurations.
+const adapter = new RocketChatAdapter(botOptions);
+var controller = new Botkit({ adapter: adapter})
 
-5. `controller.defineBot()` Defines some importants functions like `bot.send()` and `bot.reply()`
+// imports local conversations if need
+controller.loadModules(__dirname + '/skills')
+controller.hears(['hello', 'hi'], 'live_chat', async function (bot, message) {
+  //greating an user  
+  await bot.reply(message, 'Hello ' + message.user + '!!');
+});
 
-6. Every message that's appers in the RocketChat side is sent using `bot.send()` function.
+```
 
-7. `bot.reply()` is used to reply messages.
-
-8. To make all things work, it's needed pass throught some `middlewares`, this is a pipeline from `CoreBot.js` to configure the message and others things.
