@@ -2,7 +2,7 @@
  * @module botbuilder-adapter-rocketchat
  */
 
-import { Activity, ActivityTypes, BotAdapter, ConversationReference, ResourceResponse, TurnContext } from 'botbuilder';
+import { Activity, ActivityTypes, BotAdapter, ConversationReference, ResourceResponse, TurnContext , ChannelAccount} from 'botbuilder';
 const { driver, api } = require('@rocket.chat/sdk')
 import * as utils from "./utils";
 
@@ -51,13 +51,21 @@ export class RocketChatAdapter extends BotAdapter {
       process.exit(1);
     }
 
-    botkit.ready(() => {
+    botkit.ready(async() => {
 
       if (this.connected) {
         var options = {
           dm: this.rocketChatOptions.rocketchat_bot_direct_messages,
           livechat: this.rocketChatOptions.rocketchat_bot_live_chat,
           edited: this.rocketChatOptions.rocketchat_bot_edited
+        }
+
+        if (this.rocketChatOptions.rocketchat_bot_live_chat){
+          // change livechat bot status to availible
+          // chat bot user should be livechat manager
+          // there is no other APIs to do it. 
+          // https://github.com/RocketChat/Rocket.Chat/issues/12793
+          await this.api.changeLiveChatAgentStatus(this.rocketChatOptions.rocketchat_bot_user)
         }
 
         // trigger when every message is sent from any source enabled from
@@ -74,8 +82,9 @@ export class RocketChatAdapter extends BotAdapter {
               id: message.rid
             },
             from: {
-              id: message.alias
-            },
+              id: message.u._id,
+              name: message.u.name
+            } as ChannelAccount,
             recipient: {
               id: conf.rocketchat_bot_user
             },

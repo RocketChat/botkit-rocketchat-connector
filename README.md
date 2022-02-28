@@ -44,7 +44,7 @@ var controller = new Botkit({ adapter: adapter})
 controller.loadModules(__dirname + '/skills')
 controller.hears(['hello', 'hi'], 'live_chat', async function (bot, message) {
   //greating an user  
-  await bot.reply(message, 'Hello ' + message.user + '!!');
+  await bot.reply(message, 'Hello ' + message.reference.user.name + '!!');
 });
 
 ```

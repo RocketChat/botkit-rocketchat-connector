@@ -8,6 +8,9 @@ export interface RocketChatApi {
   forwardLiveChat(roomId: string, userId: string): void;
   getUserInfoByName(username: string): Promise<any>;
   getLiveChatInfo(roomId: string, token: string): Promise<any>;
+  changeLiveChatAgentStatus(username: string): Promise<any>;
+  getLiveChatAgentStatus(): Promise<any>;
+  getOmnichannelContact(contactId: string): Promise<any>;
 }
 
 export class RocketChatApiImpl implements RocketChatApi {
@@ -122,5 +125,20 @@ export class RocketChatApiImpl implements RocketChatApi {
 
   async getLiveChatInfo(roomId: string, token: string): Promise<any> {
     return await api.get("livechat/room", { "rid": roomId, "token": token }, true);
+  }
+
+  async changeLiveChatAgentStatus(username: string): Promise<any> {
+    const res = await api.post("livechat/users/agent",{"username": username}, true);
+    return res;
+  }
+
+  async getLiveChatAgentStatus(): Promise<any> {
+    const res = await api.get("livechat/users/agent", true);
+    return res;
+  }
+
+  async getOmnichannelContact(contactId: string): Promise<any> {
+    const res = await api.get("omnichannel/contact?contactId="+ contactId, true);
+    return res;
   }
 }
