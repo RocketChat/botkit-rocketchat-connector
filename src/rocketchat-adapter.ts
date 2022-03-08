@@ -3,7 +3,7 @@
  */
 
 import { Activity, ActivityTypes, BotAdapter, ConversationReference, ResourceResponse, TurnContext , ChannelAccount} from 'botbuilder';
-const { driver, api } = require('@rocket.chat/sdk')
+const { driver} = require('@rocket.chat/sdk')
 import * as utils from "./utils";
 
 export class RocketChatAdapter extends BotAdapter {
