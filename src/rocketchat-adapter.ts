@@ -33,16 +33,10 @@ export class RocketChatAdapter extends BotAdapter {
   async init(botkit) {
     try {
       // make the connection with RocketChat
-      await driver.connect({ host: this.rocketChatOptions.rocketchat_host, useSsl: this.rocketChatOptions.rocketchat_ssl });
-      await driver.login({ username: this.rocketChatOptions.rocketchat_bot_user, password: this.rocketChatOptions.rocketchat_bot_pass });
+      await this.api.connectAndLogin({ host: this.rocketChatOptions.rocketchat_host, useSsl: this.rocketChatOptions.rocketchat_ssl },
+        { username: this.rocketChatOptions.rocketchat_bot_user, password: this.rocketChatOptions.rocketchat_bot_pass })
       await this.api.addToRooms(this.rocketChatOptions.rocketchat_bot_rooms);
       await driver.subscribeToMessages();
-      //directly overrride url
-      api.url = this.rocketChatOptions.rocketchat_host + '/api/v1/'
-      const loginAPI = await api.login({
-        username: this.rocketChatOptions.rocketchat_bot_user,
-        password: this.rocketChatOptions.rocketchat_bot_pass
-      });
       this.connected = true
     } catch (error) {
       this.connected = false
@@ -141,13 +135,7 @@ export class RocketChatAdapter extends BotAdapter {
       const activity = activities[a];
 
       const message = this.activityToMessage(activity as Activity);
-      // set event type
-      // if (activity.type !== ActivityTypes.Message) {
-      //   message.type = activity.channelData.botkitEventType;
-      // }
-      var reference = TurnContext.getConversationReference(context.activity);
       const channel = context.activity.channelId;
-
 
       if (this.connected) {
         // handles every type of message
