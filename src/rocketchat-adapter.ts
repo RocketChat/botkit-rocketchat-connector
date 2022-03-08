@@ -2,8 +2,8 @@
  * @module botbuilder-adapter-rocketchat
  */
 
-import { Activity, ActivityTypes, BotAdapter, ConversationReference, ResourceResponse, TurnContext , ChannelAccount} from 'botbuilder';
-const { driver} = require('@rocket.chat/sdk')
+import { Activity, ActivityTypes, BotAdapter, ConversationReference, ResourceResponse, TurnContext, ChannelAccount } from 'botbuilder';
+const { driver } = require('@rocket.chat/sdk')
 import * as utils from "./utils";
 
 export class RocketChatAdapter extends BotAdapter {
@@ -45,7 +45,7 @@ export class RocketChatAdapter extends BotAdapter {
       process.exit(1);
     }
 
-    botkit.ready(async() => {
+    botkit.ready(async () => {
 
       if (this.connected) {
         var options = {
@@ -54,7 +54,7 @@ export class RocketChatAdapter extends BotAdapter {
           edited: this.rocketChatOptions.rocketchat_bot_edited
         }
 
-        if (this.rocketChatOptions.rocketchat_bot_live_chat){
+        if (this.rocketChatOptions.rocketchat_bot_live_chat) {
           // change livechat bot status to availible
           // chat bot user should be livechat manager
           // there is no other APIs to do it. 
