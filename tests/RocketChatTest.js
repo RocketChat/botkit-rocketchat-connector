@@ -1,8 +1,9 @@
 const should = require('should')
 const assert = require('assert')
-const Botkit = require('botkit')
-const rocketchatbot = require('../RocketChatBot.js')
-const utils = require('../utils.js')
+const { Botkit } = require('botkit');
+const {RocketChatAdapter} = require('../lib/rocketchat-adapter')
+const {RocketChatApiImpl} = require('../lib/utils')
+
 
 var botOptions = {
   debug: false,
@@ -10,8 +11,8 @@ var botOptions = {
   studio_command_uri: '',
   studio_stats_uri: '',
   rocketchat_host: 'localhost:3000',
-  rocketchat_bot_user: 'botkit',
-  rocketchat_bot_pass: 'botkit',
+  rocketchat_bot_user: 'bot',
+  rocketchat_bot_pass: 'bot',
   rocketchat_ssl: 'false',
   rocketchat_bot_room: 'GENERAL',
   rocketchat_bot_direct_messages: 'true',
@@ -23,24 +24,25 @@ var botOptions = {
 describe('Initialize', function () {
   it('should have Botkit instance', function (done) {
     should.exist(Botkit)
-    should.exist(Botkit.core)
     done()
   })
 
   it('should have Botkit instance', function (done) {
-    should.exist(rocketchatbot)
+    should.exist(RocketChatAdapter)
     done()
   })
 })
 
 describe('Start', function () {
   it('should start and then stop', function (done) {
-    var controller = rocketchatbot({}, botOptions)
+    const adapter = new RocketChatAdapter(botOptions);
+    var controller = new Botkit({ adapter: adapter})
     done()
   })
 })
 
 describe('Utils functions', function () {
+  const utils = new RocketChatApiImpl()
   const correctBotName = 'botName'
   const correctMessage = {
     mentions: [{ username: correctBotName }],
