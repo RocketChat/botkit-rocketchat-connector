@@ -5,6 +5,7 @@
 import { Activity, ActivityTypes, BotAdapter, ConversationReference, ResourceResponse, TurnContext, ChannelAccount } from 'botbuilder';
 const { driver } = require('@rocket.chat/sdk')
 import * as utils from "./utils";
+import { RocketChatBotWorker } from "./botworker";
 
 export class RocketChatAdapter extends BotAdapter {
   /**
@@ -19,10 +20,24 @@ export class RocketChatAdapter extends BotAdapter {
 
   connected: boolean;
 
+  logger: ILogger
+
+  /**
+ * A customized BotWorker object that exposes additional utility methods.
+* @ignore
+*/
+  public botkit_worker = RocketChatBotWorker;
+
   constructor(options: RocketChatAdapterOptions) {
     super();
     this.rocketChatOptions = options || null;
     this.api = new utils.RocketChatApiImpl();
+    if (options.new_logger) {
+      this.logger = options.new_logger
+      this.api.replaceLogger(options.new_logger)
+    } else {
+      this.logger = new SimpleConsoleLogger()
+    }
   }
 
   /**
@@ -40,7 +55,7 @@ export class RocketChatAdapter extends BotAdapter {
       this.connected = true
     } catch (error) {
       this.connected = false
-      console.log(error)
+      this.logger.error(error)
       // This is a fatal error! Unable to connect to Rocket.Chat server.
       process.exit(1);
     }
@@ -55,10 +70,7 @@ export class RocketChatAdapter extends BotAdapter {
         }
 
         if (this.rocketChatOptions.rocketchat_bot_live_chat) {
-          // change livechat bot status to availible
-          // chat bot user should be livechat manager
-          // there is no other APIs to do it. 
-          // https://github.com/RocketChat/Rocket.Chat/issues/12793
+          //change live chat bot status to availible
           await this.api.changeLiveChatAgentStatus(this.rocketChatOptions.rocketchat_bot_user)
         }
 
@@ -97,7 +109,7 @@ export class RocketChatAdapter extends BotAdapter {
 
           const context = new TurnContext(botkit.adapter, activity as Activity);
           botkit.adapter.runMiddleware(context, botkit.handleTurn.bind(botkit))
-            .catch((err) => { console.error(err.toString()); });
+            .catch((err) => { this.logger.error(err.toString()); });
         }, options)
       }
     });
@@ -186,4 +198,35 @@ export interface RocketChatAdapterOptions {
   rocketchat_bot_direct_messages?: boolean,
   rocketchat_bot_live_chat?: boolean,
   rocketchat_bot_edited?: boolean,
+  new_logger?: ILogger
+}
+
+/**
+ * Loggers need to provide the same set of methods
+ */
+export interface ILogger {
+  debug(...args: any[]);
+  info(...args: any[]);
+  warning(...args: any[]);
+  warn(...args: any[]);
+  error(...args: any[]);
+}
+class SimpleConsoleLogger implements ILogger {
+  constructor() {
+  }
+  debug(...args: any[]) {
+    console.log(args)
+  }
+  info(...args: any[]) {
+    console.log(args)
+  }
+  warning(...args: any[]) {
+    console.log(args)
+  }
+  warn(...args: any[]) {
+    console.log(args)
+  }
+  error(...args: any[]) {
+    console.log(args)
+  }
 }

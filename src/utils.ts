@@ -13,9 +13,10 @@ export interface RocketChatApi {
   getOmnichannelContact(contactId: string): Promise<any>;
   connectAndLogin(connectOpts: any, creds: any): Promise<any>;
   logoutAndDisconnect(): Promise<any>;
-  createUser(userParams:UserInfoParams):Promise<any>;
+  createUser(userParams: UserInfoParams): Promise<any>;
   updateSettings(newSetting: settingPayload): Promise<any>;
-  getSettingById(_id:string): Promise<any> ;
+  getSettingById(_id: string): Promise<any>;
+  replaceLogger(logger: any);
 }
 
 export class RocketChatApiImpl implements RocketChatApi {
@@ -133,7 +134,7 @@ export class RocketChatApiImpl implements RocketChatApi {
   }
 
   async changeLiveChatAgentStatus(username: string): Promise<any> {
-    return await api.post("livechat/users/agent",{"username": username}, true);
+    return await api.post("livechat/users/agent", { "username": username }, true);
   }
 
   async getLiveChatAgentStatus(): Promise<any> {
@@ -141,7 +142,7 @@ export class RocketChatApiImpl implements RocketChatApi {
   }
 
   async getOmnichannelContact(contactId: string): Promise<any> {
-    const res = await api.get("omnichannel/contact?contactId="+ contactId, true);
+    const res = await api.get("omnichannel/contact?contactId=" + contactId, true);
     return res;
   }
 
@@ -159,22 +160,26 @@ export class RocketChatApiImpl implements RocketChatApi {
 
   async createUser(userParams: UserInfoParams) {
     return await api.post("users.create",
-    userParams, true);
+      userParams, true);
   }
 
-  async getSettingById(_id:string): Promise<any> {
+  async getSettingById(_id: string): Promise<any> {
     return await api.get("settings/_id", true);
   }
 
   async updateSettings(newSetting: settingPayload): Promise<any> {
     return await api.post("settings/" + newSetting._id, newSetting, true);
   }
+
+  replaceLogger(logger:any){
+    driver.useLog(logger)
+  }
 }
 export interface UserInfoParams {
-  username:string,
-  email:string,
-  name:string,
-  password:string
+  username: string,
+  email: string,
+  name: string,
+  password: string
 }
 
 export interface settingPayload {
